@@ -121,7 +121,7 @@ window.__errs = [];
 addEventListener('error', e => window.__errs.push((e.message||'') + ' @ ' + (e.filename||'').split('/').pop() + ':' + (e.lineno||'')));
 addEventListener('unhandledrejection', e => window.__errs.push('REJ: ' + ((e.reason && e.reason.stack) || e.reason).split('\n').slice(0,3).join('|')));
 </script>
-<script src="dist/scene3d.js?v=5"></script>
+<script src="dist/scene3d.js?v=6"></script>
 <script>
 /* ════════════ 2D 播放层：完整走带（与 3D 共用音频） ════════════ */
 const SIDES = {

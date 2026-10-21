@@ -451,3 +451,8 @@ window.Hybrid3D = {
 /* hint 元素由 2D 层持有，这里转发文本 */
 const hintEl = document.getElementById('hint');
 function hint(text) { if (hintEl) { hintEl.textContent = text; hintEl.style.opacity = '.9'; clearTimeout(hint.t); hint.t = setTimeout(() => hintEl.style.opacity = '.35', 9000); } }
+
+boot().catch((err) => {
+  console.error(err);
+  hint('初始化失败：' + (err?.message || err));
+});
