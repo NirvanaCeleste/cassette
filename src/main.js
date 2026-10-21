@@ -5,10 +5,7 @@
    ════════════════════════════════════════════════════════════════════ */
 import * as THREE from 'three';
 import { createEnvironments } from './env.js';
-import { createRig, RIG } from './lights.js';
 import { createCassette } from './cassette.js';
-import { createSoftFloor } from './floor.js';
-import { createComposer } from './post.js';
 import { Orbit } from './controls.js';
 import { clamp } from './anim.js';
 import * as TX from './textures.js';
@@ -37,7 +34,7 @@ renderer.setSize(innerWidth, innerHeight, false);
 renderer.toneMapping = THREE.NeutralToneMapping ?? THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1;
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.type = THREE.PCFShadowMap;
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(30, innerWidth / innerHeight, 1, 220);
@@ -57,21 +54,39 @@ scene.add(backdrop);
 const envs = createEnvironments(renderer);
 scene.environment = envs.noir;
 
-const rig = createRig(scene);
+/* 灯光：两盏方向光 + 半球光，全部实时直出，没有任何后处理 */
+scene.add(new THREE.HemisphereLight(0x9db4d6, 0x0c0d10, 0.85));
+const keyLight = new THREE.DirectionalLight(0xfff1e0, 2.4);
+keyLight.position.set(9, 15, 11);
+keyLight.castShadow = true;
+keyLight.shadow.mapSize.set(1024, 1024);
+keyLight.shadow.camera.left = -14; keyLight.shadow.camera.right = 14;
+keyLight.shadow.camera.top = 14; keyLight.shadow.camera.bottom = -14;
+keyLight.shadow.camera.near = 2; keyLight.shadow.camera.far = 50;
+keyLight.shadow.bias = -0.0004;
+scene.add(keyLight);
+const rimLight = new THREE.DirectionalLight(0x8fb0ff, 1.1);
+rimLight.position.set(-12, 9, -8);
+scene.add(rimLight);
 renderer.shadowMap.autoUpdate = false;
 renderer.shadowMap.needsUpdate = true;
 
-const floorBase = createSoftFloor({ base: 0x0b0c0e, mix: 0.62, y: -1.62, interval: IS_MOBILE ? 4 : 2 });
-scene.add(floorBase.mesh ?? floorBase.group ?? floorBase);
-
-/* composer：AO / 辉光 / 颗粒 / 暗角 */
-let composer, grade, bloom, aoPass;
-function buildComposer() {
-  const c = createComposer(renderer, scene, camera);
-  composer = c.composer; grade = c.grade; bloom = c.bloom; aoPass = c.ao;
-  // uFade 是整帧的淡入系数（着色器输出 c * uFade），不点亮就是一帧纯黑
-  grade.uniforms.uFade.value = 1;
-  if (IS_MOBILE) aoPass.enabled = false;   // SSAO 是整条后处理里最贵的一趟
+/* 台面：一张静态渐变圆盘，不再每帧反射整个场景 */
+{
+  const c = document.createElement('canvas'); c.width = c.height = 512;
+  const g = c.getContext('2d');
+  const rg = g.createRadialGradient(256, 256, 40, 256, 256, 256);
+  rg.addColorStop(0, '#1c1e24'); rg.addColorStop(0.55, '#0e1013'); rg.addColorStop(1, '#050607');
+  g.fillStyle = rg; g.fillRect(0, 0, 512, 512);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const floor = new THREE.Mesh(
+    new THREE.CircleGeometry(60, 48).rotateX(-Math.PI / 2),
+    new THREE.MeshStandardMaterial({ map: tex, roughness: 0.95, metalness: 0 })
+  );
+  floor.position.y = -1.62;
+  floor.receiveShadow = true;
+  scene.add(floor);
 }
 
 /* 相机：可拖拽旋转 / 滚轮缩放 / 双击回家 */
@@ -99,6 +114,7 @@ const HOVER = { pos: new THREE.Vector3(8.6, 0.7, 6.4), rotY: 0.55 };
 async function boot() {
   await LABEL_ART_READY;
   deck = buildDeck();
+  deck.root.traverse((o) => { if (o.isMesh) o.receiveShadow = true; });
   scene.add(deck.root);
 
   cas = createCassette({ title: MIXTAPE.title, artist: MIXTAPE.no, album: `${MIXTAPE.year} · 限量 1 张`, minutes: '60' });
@@ -111,8 +127,7 @@ async function boot() {
   audioEl.addEventListener('loadedmetadata', () => { if (audioOk()) cas.st.duration = audioEl.duration; });
   audioEl.addEventListener('ended', endOfSide);
 
-  buildComposer();
-  rig.apply(RIG.noir, 0, true, 1);
+  renderer.shadowMap.needsUpdate = true;
   onResize();
   addEventListener('resize', onResize);
   bindPointer();
@@ -496,6 +511,8 @@ function loop() {
   const st = cas.update(dt);
   deck.tick(dt);
   tickVU();
+  // 阴影贴图只在有东西动的时候重烘（磁带插入/弹出/翻面）
+  if (animP || Math.abs(st.flip - st.flipTarget) > 0.01) renderer.shadowMap.needsUpdate = true;
 
   // LCD 每 0.25s 刷时间；曲目变化时右下角报歌
   uiAcc += dt;
@@ -514,11 +531,6 @@ function loop() {
     if (title !== lastTitle) { lastTitle = title; document.title = title; }
   }
 
-  // 磁带位置的投影给暗角用
-  cas.root.getWorldPosition(subjectPos).project(camera);
-  grade.uniforms.uCenter.value.set(subjectPos.x * 0.5 + 0.5, subjectPos.y * 0.5 + 0.5);
-  grade.uniforms.uTime.value = t;
-
   orbit.update(dt);
   // 自适应分辨率：持续 >26ms 就降采样，<15ms 再升回来，设备差也能稳住交互
   emaFrame = emaFrame * 0.94 + Math.min(dt, 0.05) * 1000 * 0.06;
@@ -528,10 +540,7 @@ function loop() {
     if (emaFrame > 26 && resScale > 0.55) { resScale = Math.max(0.55, resScale - 0.12); onResize(); }
     else if (emaFrame < 15 && resScale < 1) { resScale = Math.min(1, resScale + 0.08); onResize(); }
   }
-  const camMoved = Math.abs(camera.position.lengthSq() - (loop._cl ?? 0)) > 1e-6;
-  loop._cl = camera.position.lengthSq();
-  floorBase.update(renderer, scene, camera, camMoved);
-  composer.render();
+  renderer.render(scene, camera);
   requestAnimationFrame(loop);
 }
 
@@ -543,10 +552,6 @@ function onResize() {
   renderer.setPixelRatio(dpr);
   renderer.setSize(w, h, false);
   camera.updateProjectionMatrix();
-  const bw = Math.round(w * dpr), bh = Math.round(h * dpr);
-  if (composer) composer.setSize(bw, bh);
-  if (bloom) bloom.setSize(bw, bh);
-  floorBase.setSize && floorBase.setSize(w, h);
 }
 
 boot().catch((err) => {
