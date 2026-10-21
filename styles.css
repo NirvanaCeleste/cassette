@@ -1,0 +1,62 @@
+/* 一盘磁带，一台卡座——页面本身退到黑场里，只剩两件实体和一点光。 */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  background: #040507;
+  font: 300 14px/1.5 "Segoe UI", "Microsoft YaHei", sans-serif;
+  color: #d8dadd;
+}
+#gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+
+/* 开场：从黑里亮起来 */
+.veil {
+  position: fixed; inset: 0;
+  background: #040507;
+  z-index: 40;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 1.6s cubic-bezier(.4, 0, .2, 1);
+}
+body.ready .veil { opacity: 0; }
+
+/* 右下角浮字：顺序走到一首歌时，浅浅的一行 */
+.trkpop {
+  position: fixed;
+  right: 32px;
+  bottom: 30px;
+  z-index: 20;
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  font-weight: 300;
+  font-size: 13px;
+  letter-spacing: .16em;
+  color: #aeb4bc;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 1.4s cubic-bezier(.4, 0, .2, 1), transform 1.4s cubic-bezier(.4, 0, .2, 1);
+  pointer-events: none;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, .8);
+}
+.trkpop.show { opacity: .62; transform: none; }
+.trkpop .tp-side { font-size: 10px; font-weight: 600; letter-spacing: .32em; color: #8a919b; }
+.trkpop .tp-no { font-size: 10px; letter-spacing: .1em; color: #6d747e; }
+
+/* 左下角操作提示：更浅的一行 */
+.hint {
+  position: fixed;
+  left: 32px;
+  bottom: 30px;
+  z-index: 20;
+  font-weight: 300;
+  font-size: 11px;
+  letter-spacing: .22em;
+  color: #565c66;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+  pointer-events: none;
+  white-space: pre;
+}
+.hint.show { opacity: .8; }
+
+body.dragging { cursor: grabbing; }
