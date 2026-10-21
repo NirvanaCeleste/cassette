@@ -936,6 +936,7 @@ export function createCassette(labelOpts = {}) {
 
   let lastR = -1;
   let spinArea = st.areaL;
+  let lastAreaL = st.areaL;
   /** the hub angle is an accumulator nothing ever reads back, so folding it into
       one turn is invisible. Left to climb it passes ~1e5 rad in a long session,
       where float32 spacing is 0.01 rad and the spline teeth start to judder. */
@@ -958,32 +959,38 @@ export function createCassette(labelOpts = {}) {
     }
     st.rL = radius(st.areaL); st.rR = radius(A_TOTAL - st.areaL);
     st.time = ((A_TOTAL - st.areaL) / A_TOTAL) * st.duration;
-    // the coating slides with the same position the reels are turning by, so the
-    // two can never disagree about which way the tape is going
-    alignTape();
+    // ---- 静止时整段跳过：带面贴图偏移、卷轴旋转、带卷缩放、UV 重写、带形重建
+    // （这些是每帧唯一的缓冲区上传来源；停住的时候一帧都不该碰 GPU 缓冲）
+    const moved = Math.abs(st.areaL - lastAreaL) > 1e-9;
+    lastAreaL = st.areaL;
+    if (moved) {
+      // the coating slides with the same position the reels are turning by, so the
+      // two can never disagree about which way the tape is going
+      alignTape();
 
-    // reels follow whatever moved the tape: ω = v / r,  v = -dA/dt / layer.
-    // measured against the *previous frame*, not against the top of this call,
-    // because setProgress() (audio clock) writes areaL before update() runs
-    const dA = (st.areaL - spinArea) / Math.max(dt, 1e-4);
-    spinArea = st.areaL;
-    if (Math.abs(dA) > 1e-9) {
-      const vTape = -dA / D.tTape;
-      reels[0].spin.rotation.y = foldAngle(reels[0].spin.rotation.y + (vTape / Math.max(st.rL, 0.25)) * dt);
-      reels[1].spin.rotation.y = foldAngle(reels[1].spin.rotation.y + (vTape / Math.max(st.rR, 0.25)) * dt);
-    }
-    // the pack's *body* is one layer in from the pack's radius: the ribbon is
-    // drawing the outermost layer, and it has to have somewhere to sit
-    const bl = st.rL - D.tTape, br = st.rR - D.tTape;
-    reels[0].pack.scale.set(bl, 1, bl);
-    reels[1].pack.scale.set(br, 1, br);
-    alignPack(0); alignPack(1);
-    // the pack radius drifts ~3.5e-5 units per frame at 60 fps — rebuilding the
-    // ribbon every frame bought nothing visible, so gate it on 1.5e-3
-    if (lastR < 0 || Math.abs(st.rL - lastR) > 1.5e-3 || Math.abs(st.rR - lastR) > 1.5e-3) {
-      fillPath(st.rL, st.rR);
-      ribbon.setPath(pts);
-      lastR = st.rL;
+      // reels follow whatever moved the tape: ω = v / r,  v = -dA/dt / layer.
+      // measured against the *previous frame*, not against the top of this call,
+      // because setProgress() (audio clock) writes areaL before update() runs
+      const dA = (st.areaL - spinArea) / Math.max(dt, 1e-4);
+      spinArea = st.areaL;
+      if (Math.abs(dA) > 1e-9) {
+        const vTape = -dA / D.tTape;
+        reels[0].spin.rotation.y = foldAngle(reels[0].spin.rotation.y + (vTape / Math.max(st.rL, 0.25)) * dt);
+        reels[1].spin.rotation.y = foldAngle(reels[1].spin.rotation.y + (vTape / Math.max(st.rR, 0.25)) * dt);
+      }
+      // the pack's *body* is one layer in from the pack's radius: the ribbon is
+      // drawing the outermost layer, and it has to have somewhere to sit
+      const bl = st.rL - D.tTape, br = st.rR - D.tTape;
+      reels[0].pack.scale.set(bl, 1, bl);
+      reels[1].pack.scale.set(br, 1, br);
+      alignPack(0); alignPack(1);
+      // the pack radius drifts ~3.5e-5 units per frame at 60 fps — rebuilding the
+      // ribbon every frame bought nothing visible, so gate it on 1.5e-3
+      if (lastR < 0 || Math.abs(st.rL - lastR) > 1.5e-3 || Math.abs(st.rR - lastR) > 1.5e-3) {
+        fillPath(st.rL, st.rR);
+        ribbon.setPath(pts);
+        lastR = st.rL;
+      }
     }
     // ---- explode / flip
     st.explode = damp(st.explode, st.explodeTarget, 3.4, dt);

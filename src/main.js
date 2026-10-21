@@ -696,7 +696,7 @@ function frame(dt) {
 
 function onResize() {
   const w = innerWidth, h = innerHeight;
-  const dpr = Math.min(devicePixelRatio || 1, IS_MOBILE ? 1.0 : 1.5) * resScale;
+  const dpr = Math.min(devicePixelRatio || 1, IS_MOBILE ? 1.0 : 1.25) * resScale;
   camera.aspect = w / h;
   renderer.setPixelRatio(dpr);
   renderer.setSize(w, h, false);

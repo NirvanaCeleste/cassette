@@ -30371,6 +30371,7 @@ void main() {
     }
     let lastR = -1;
     let spinArea = st.areaL;
+    let lastAreaL = st.areaL;
     const foldAngle = (a) => a % (Math.PI * 2);
     function update(dt) {
       if (st.playing && !st.driven) {
@@ -30398,23 +30399,27 @@ void main() {
       st.rL = radius(st.areaL);
       st.rR = radius(A_TOTAL - st.areaL);
       st.time = (A_TOTAL - st.areaL) / A_TOTAL * st.duration;
-      alignTape();
-      const dA = (st.areaL - spinArea) / Math.max(dt, 1e-4);
-      spinArea = st.areaL;
-      if (Math.abs(dA) > 1e-9) {
-        const vTape = -dA / D.tTape;
-        reels[0].spin.rotation.y = foldAngle(reels[0].spin.rotation.y + vTape / Math.max(st.rL, 0.25) * dt);
-        reels[1].spin.rotation.y = foldAngle(reels[1].spin.rotation.y + vTape / Math.max(st.rR, 0.25) * dt);
-      }
-      const bl = st.rL - D.tTape, br = st.rR - D.tTape;
-      reels[0].pack.scale.set(bl, 1, bl);
-      reels[1].pack.scale.set(br, 1, br);
-      alignPack(0);
-      alignPack(1);
-      if (lastR < 0 || Math.abs(st.rL - lastR) > 15e-4 || Math.abs(st.rR - lastR) > 15e-4) {
-        fillPath(st.rL, st.rR);
-        ribbon.setPath(pts);
-        lastR = st.rL;
+      const moved = Math.abs(st.areaL - lastAreaL) > 1e-9;
+      lastAreaL = st.areaL;
+      if (moved) {
+        alignTape();
+        const dA = (st.areaL - spinArea) / Math.max(dt, 1e-4);
+        spinArea = st.areaL;
+        if (Math.abs(dA) > 1e-9) {
+          const vTape = -dA / D.tTape;
+          reels[0].spin.rotation.y = foldAngle(reels[0].spin.rotation.y + vTape / Math.max(st.rL, 0.25) * dt);
+          reels[1].spin.rotation.y = foldAngle(reels[1].spin.rotation.y + vTape / Math.max(st.rR, 0.25) * dt);
+        }
+        const bl = st.rL - D.tTape, br = st.rR - D.tTape;
+        reels[0].pack.scale.set(bl, 1, bl);
+        reels[1].pack.scale.set(br, 1, br);
+        alignPack(0);
+        alignPack(1);
+        if (lastR < 0 || Math.abs(st.rL - lastR) > 15e-4 || Math.abs(st.rR - lastR) > 15e-4) {
+          fillPath(st.rL, st.rR);
+          ribbon.setPath(pts);
+          lastR = st.rL;
+        }
       }
       st.explode = damp2(st.explode, st.explodeTarget, 3.4, dt);
       st.flip = damp2(st.flip, st.flipTarget, 4.2, dt);
@@ -31954,7 +31959,7 @@ void main() {
   }
   function onResize() {
     const w = innerWidth, h = innerHeight;
-    const dpr = Math.min(devicePixelRatio || 1, IS_MOBILE ? 1 : 1.5) * resScale;
+    const dpr = Math.min(devicePixelRatio || 1, IS_MOBILE ? 1 : 1.25) * resScale;
     camera.aspect = w / h;
     renderer.setPixelRatio(dpr);
     renderer.setSize(w, h, false);
