@@ -12500,18 +12500,18 @@
      * @param {XRReferenceSpace} referenceSpace - The reference space.
      * @return {WebXRController} A reference to this instance.
      */
-    update(inputSource, frame, referenceSpace) {
+    update(inputSource, frame2, referenceSpace) {
       let inputPose = null;
       let gripPose = null;
       let handPose = null;
       const targetRay = this._targetRay;
       const grip = this._grip;
       const hand = this._hand;
-      if (inputSource && frame.session.visibilityState !== "visible-blurred") {
+      if (inputSource && frame2.session.visibilityState !== "visible-blurred") {
         if (hand && inputSource.hand) {
           handPose = true;
           for (const inputjoint of inputSource.hand.values()) {
-            const jointPose = frame.getJointPose(inputjoint, referenceSpace);
+            const jointPose = frame2.getJointPose(inputjoint, referenceSpace);
             const joint = this._getHandJoint(hand, inputjoint);
             if (jointPose !== null) {
               joint.matrix.fromArray(jointPose.transform.matrix);
@@ -12543,7 +12543,7 @@
           }
         } else {
           if (grip !== null && inputSource.gripSpace) {
-            gripPose = frame.getPose(inputSource.gripSpace, referenceSpace);
+            gripPose = frame2.getPose(inputSource.gripSpace, referenceSpace);
             if (gripPose !== null) {
               grip.matrix.fromArray(gripPose.transform.matrix);
               grip.matrix.decompose(grip.position, grip.rotation, grip.scale);
@@ -12564,7 +12564,7 @@
           }
         }
         if (targetRay !== null) {
-          inputPose = frame.getPose(inputSource.targetRaySpace, referenceSpace);
+          inputPose = frame2.getPose(inputSource.targetRaySpace, referenceSpace);
           if (inputPose === null && gripPose !== null) {
             inputPose = gripPose;
           }
@@ -18596,8 +18596,8 @@
     let isAnimating = false;
     let animationLoop = null;
     let requestId = null;
-    function onAnimationFrame(time, frame) {
-      animationLoop(time, frame);
+    function onAnimationFrame(time, frame2) {
+      animationLoop(time, frame2);
       requestId = context.requestAnimationFrame(onAnimationFrame);
     }
     return {
@@ -21301,30 +21301,30 @@
   function WebGLObjects(gl, geometries, attributes, info) {
     let updateMap = /* @__PURE__ */ new WeakMap();
     function update(object) {
-      const frame = info.render.frame;
+      const frame2 = info.render.frame;
       const geometry = object.geometry;
       const buffergeometry = geometries.get(object, geometry);
-      if (updateMap.get(buffergeometry) !== frame) {
+      if (updateMap.get(buffergeometry) !== frame2) {
         geometries.update(buffergeometry);
-        updateMap.set(buffergeometry, frame);
+        updateMap.set(buffergeometry, frame2);
       }
       if (object.isInstancedMesh) {
         if (object.hasEventListener("dispose", onInstancedMeshDispose) === false) {
           object.addEventListener("dispose", onInstancedMeshDispose);
         }
-        if (updateMap.get(object) !== frame) {
+        if (updateMap.get(object) !== frame2) {
           attributes.update(object.instanceMatrix, gl.ARRAY_BUFFER);
           if (object.instanceColor !== null) {
             attributes.update(object.instanceColor, gl.ARRAY_BUFFER);
           }
-          updateMap.set(object, frame);
+          updateMap.set(object, frame2);
         }
       }
       if (object.isSkinnedMesh) {
         const skeleton = object.skeleton;
-        if (updateMap.get(skeleton) !== frame) {
+        if (updateMap.get(skeleton) !== frame2) {
           skeleton.update();
-          updateMap.set(skeleton, frame);
+          updateMap.set(skeleton, frame2);
         }
       }
       return buffergeometry;
@@ -25910,9 +25910,9 @@
       return renderTarget.samples > 0 && extensions.has("WEBGL_multisampled_render_to_texture") === true && renderTargetProperties.__useRenderToTexture !== false;
     }
     function updateVideoTexture(texture) {
-      const frame = info.render.frame;
-      if (_videoTextures.get(texture) !== frame) {
-        _videoTextures.set(texture, frame);
+      const frame2 = info.render.frame;
+      if (_videoTextures.get(texture) !== frame2) {
+        _videoTextures.set(texture, frame2);
         texture.update();
       }
     }
@@ -26560,9 +26560,9 @@ void main() {
         return cameraAccessTextures[xrCamera];
       };
       let onAnimationFrameCallback = null;
-      function onAnimationFrame(time, frame) {
-        pose = frame.getViewerPose(customReferenceSpace || referenceSpace);
-        xrFrame = frame;
+      function onAnimationFrame(time, frame2) {
+        pose = frame2.getViewerPose(customReferenceSpace || referenceSpace);
+        xrFrame = frame2;
         if (pose !== null) {
           const views = pose.views;
           if (glBaseLayer !== null) {
@@ -26642,12 +26642,12 @@ void main() {
           const inputSource = controllerInputSources[i];
           const controller = controllers[i];
           if (inputSource !== null && controller !== void 0) {
-            controller.update(inputSource, frame, customReferenceSpace || referenceSpace);
+            controller.update(inputSource, frame2, customReferenceSpace || referenceSpace);
           }
         }
-        if (onAnimationFrameCallback) onAnimationFrameCallback(time, frame);
-        if (frame.detectedPlanes) {
-          scope.dispatchEvent({ type: "planesdetected", data: frame });
+        if (onAnimationFrameCallback) onAnimationFrameCallback(time, frame2);
+        if (frame2.detectedPlanes) {
+          scope.dispatchEvent({ type: "planesdetected", data: frame2 });
         }
         xrFrame = null;
       }
@@ -26990,10 +26990,10 @@ void main() {
       }
       const webglProgram = program.program;
       state.updateUBOMapping(uniformsGroup, webglProgram);
-      const frame = info.render.frame;
-      if (updateList[uniformsGroup.id] !== frame) {
+      const frame2 = info.render.frame;
+      if (updateList[uniformsGroup.id] !== frame2) {
         updateBufferData(uniformsGroup);
-        updateList[uniformsGroup.id] = frame;
+        updateList[uniformsGroup.id] = frame2;
       }
     }
     function createBuffer(uniformsGroup) {
@@ -29609,7 +29609,7 @@ void main() {
     hw: 5.02,
     hh: 3.19,
     hd: 0.6,
-    rOut: 0.3,
+    rOut: 0.42,
     PT: 0.11,
     BV: 0.03,
     // plate thickness / bevel
@@ -31253,8 +31253,23 @@ void main() {
   var resScale = 1;
   var emaFrame = 16;
   var perfAcc = 0;
-  var $ = (s) => document.querySelector(s);
-  var LABEL_ART_READY = Promise.all([
+  var $ = (id) => document.getElementById(id);
+  var sfx = {};
+  for (const n of ["click", "clack", "open", "stop"]) {
+    const a = new Audio(`assets/sfx/${n}.wav`);
+    sfx[n] = a;
+  }
+  var play = (n) => {
+    try {
+      const a = sfx[n].cloneNode();
+      a.volume = 0.75;
+      a.play().catch(() => {
+      });
+    } catch {
+    }
+  };
+  var clack = () => play("clack");
+  var ART_READY = Promise.all([
     new Promise((res) => {
       const i = new Image();
       i.onload = () => res(i);
@@ -31266,44 +31281,56 @@ void main() {
       i.onload = () => res(i);
       i.onerror = () => res(null);
       i.src = "assets/label-b.png";
+    }),
+    new Promise((res) => {
+      const i = new Image();
+      i.onload = () => res(i);
+      i.onerror = () => res(null);
+      i.src = "assets/cover.png";
     })
-  ]).then(([a, b]) => setLabelArt(a, b));
+  ]).then(([a, b, c]) => {
+    setLabelArt(a, b);
+    return c;
+  });
   var renderer = new WebGLRenderer({ canvas: canvas2, antialias: false, powerPreference: "high-performance" });
-  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, IS_MOBILE ? 1.25 : 1.5));
   renderer.setSize(innerWidth, innerHeight, false);
   renderer.toneMapping = NeutralToneMapping ?? ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1;
+  renderer.toneMappingExposure = 1.18;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = PCFShadowMap;
   var scene = new Scene();
-  var camera = new PerspectiveCamera(30, innerWidth / innerHeight, 1, 220);
-  var BG = {
-    stops: [[0, "#12151a"], [0.44, "#1e232a"], [0.64, "#0d1014"], [1, "#040507"]],
-    spot: { u: 0.5, v: 0.42, r: 0.42, color: "rgba(150,168,205,0.5)" }
-  };
+  var camera = new PerspectiveCamera(30, innerWidth / innerHeight, 1, 260);
   var backdrop = new Mesh(
-    new SphereGeometry(70, 32, 24),
-    new MeshBasicMaterial({ side: BackSide, depthWrite: false, map: backdropTexture(BG) })
+    new SphereGeometry(80, 32, 24),
+    new MeshBasicMaterial({
+      side: BackSide,
+      depthWrite: false,
+      map: backdropTexture({
+        stops: [[0, "#12151a"], [0.44, "#1e232a"], [0.64, "#0d1014"], [1, "#040507"]],
+        spot: { u: 0.5, v: 0.42, r: 0.42, color: "rgba(150,168,205,0.5)" }
+      })
+    })
   );
   backdrop.frustumCulled = false;
   scene.add(backdrop);
   var envs = createEnvironments(renderer);
   scene.environment = envs.noir;
-  scene.add(new HemisphereLight(10335446, 789776, 0.85));
-  var keyLight = new DirectionalLight(16773600, 2.4);
-  keyLight.position.set(9, 15, 11);
+  scene.add(new HemisphereLight(10335446, 789776, 1.2));
+  var keyLight = new DirectionalLight(16773600, 2.9);
+  keyLight.position.set(9, 16, 12);
   keyLight.castShadow = true;
   keyLight.shadow.mapSize.set(1024, 1024);
-  keyLight.shadow.camera.left = -14;
-  keyLight.shadow.camera.right = 14;
-  keyLight.shadow.camera.top = 14;
-  keyLight.shadow.camera.bottom = -14;
+  keyLight.shadow.camera.left = -24;
+  keyLight.shadow.camera.right = 24;
+  keyLight.shadow.camera.top = 24;
+  keyLight.shadow.camera.bottom = -24;
   keyLight.shadow.camera.near = 2;
-  keyLight.shadow.camera.far = 50;
+  keyLight.shadow.camera.far = 60;
   keyLight.shadow.bias = -4e-4;
   scene.add(keyLight);
   var rimLight = new DirectionalLight(9416959, 1.1);
-  rimLight.position.set(-12, 9, -8);
+  rimLight.position.set(-14, 9, -8);
   scene.add(rimLight);
   renderer.shadowMap.autoUpdate = false;
   renderer.shadowMap.needsUpdate = true;
@@ -31320,7 +31347,7 @@ void main() {
     const tex2 = new CanvasTexture(c);
     tex2.colorSpace = SRGBColorSpace;
     const floor = new Mesh(
-      new CircleGeometry(60, 48).rotateX(-Math.PI / 2),
+      new CircleGeometry(70, 48).rotateX(-Math.PI / 2),
       new MeshStandardMaterial({ map: tex2, roughness: 0.95, metalness: 0 })
     );
     floor.position.y = -1.62;
@@ -31328,38 +31355,141 @@ void main() {
     scene.add(floor);
   }
   var orbit = new Orbit(canvas2, camera, {
-    theta: 0.62,
-    phi: 1.08,
-    radius: 30,
-    target: new Vector3(0, 1.4, 0.5),
-    minR: 12,
-    maxR: 48,
+    theta: 0.72,
+    phi: 1.06,
+    radius: 52,
+    target: new Vector3(0, 1.6, 3),
+    minR: 18,
+    maxR: 90,
     minPhi: 0.18,
     maxPhi: 1.5,
     auto: false,
     reduce,
     onInteract: (dragging) => document.body.classList.toggle("dragging", dragging)
   });
-  orbit.home = { theta: 0.62, phi: 1.08, radius: 30 };
+  orbit.home = { theta: 0.72, phi: 1.06, radius: 52 };
   var audio = new TapeAudio();
-  var audioEl = new Audio("assets/A%20side.mp3");
+  var audioEl = new Audio(MIXTAPE.sides.A.src);
   audioEl.preload = "auto";
   audioEl.volume = 0.9;
   var cas = null;
   var deck = null;
+  var tapeBox = null;
   var audioOk = () => audioEl.readyState >= 2 && isFinite(audioEl.duration) && audioEl.duration > 0;
-  var HOVER = { pos: new Vector3(8.6, 0.7, 6.4), rotY: 0.55 };
+  var HOVER = { pos: new Vector3(14.5, 2.8, 9.5), rot: { x: -0.5, y: 0.55 } };
+  var BOX = { pos: new Vector3(-20.5, -1.62, 5.5) };
+  var BOX_TAPE_POSE = {
+    pos: new Vector3(BOX.pos.x, BOX.pos.y + 1.16, BOX.pos.z + 0.25),
+    rot: {}
+  };
+  var jcardCanvas = document.createElement("canvas");
+  jcardCanvas.width = 512;
+  jcardCanvas.height = 317;
+  function drawJcard(coverImg) {
+    const g = jcardCanvas.getContext("2d");
+    g.fillStyle = "#040404";
+    g.fillRect(0, 0, 512, 317);
+    if (coverImg) {
+      const iw = coverImg.width, ih = coverImg.height;
+      const sc = Math.max(512 / iw, 317 / ih) * 0.96;
+      const w = iw * sc, h = ih * sc;
+      g.filter = "brightness(1.5)";
+      g.drawImage(coverImg, (512 - w) / 2, (317 - h) / 2 + 30, w, h);
+      g.filter = "none";
+    }
+    g.fillStyle = "rgba(240,240,240,.92)";
+    g.font = '600 34px "Microsoft YaHei", serif';
+    g.save();
+    g.translate(46, 300);
+    g.rotate(-Math.PI / 2);
+    g.fillText("\u82CD\u7A79\u8033\u8BED\u65E0\u9650\u65E0\u57A0", 0, 0);
+    g.restore();
+    g.fillStyle = "rgba(230,230,230,.8)";
+    g.font = '300 17px "Segoe UI", sans-serif';
+    g.fillText("MIXTAPE NO.001 \xB7 2026", 96, 300);
+  }
+  function buildBox(coverImg) {
+    drawJcard(coverImg);
+    const root = new Group();
+    root.position.copy(BOX.pos);
+    const W = 12.4, D2 = 7.6, WALL = 0.85;
+    const shell = new MeshStandardMaterial({ color: 2500914, roughness: 0.45, metalness: 0.45 });
+    const base = new Mesh(new RoundedBoxGeometry(W, 0.5, D2, 3, 0.2), shell);
+    base.position.y = 0.25;
+    root.add(base);
+    const mk = (w, d, x, z) => {
+      const m = new Mesh(new RoundedBoxGeometry(w, WALL, d, 2, 0.12), shell);
+      m.position.set(x, 0.5 + WALL / 2, z);
+      return m;
+    };
+    root.add(
+      mk(W, 0.4, 0, -D2 / 2 + 0.2),
+      mk(W, 0.4, 0, D2 / 2 - 0.2),
+      mk(0.4, D2 - 0.8, -W / 2 + 0.2, 0),
+      mk(0.4, D2 - 0.8, W / 2 - 0.2, 0)
+    );
+    const jtex = new CanvasTexture(jcardCanvas);
+    jtex.colorSpace = SRGBColorSpace;
+    jtex.anisotropy = 8;
+    const jcard = new Mesh(
+      new PlaneGeometry(10.9, 6.7).rotateX(-Math.PI / 2),
+      new MeshStandardMaterial({ map: jtex, roughness: 0.85 })
+    );
+    jcard.position.y = 0.52;
+    root.add(jcard);
+    const lid = new Group();
+    const lidSlab = new Mesh(
+      new RoundedBoxGeometry(W, 0.42, D2, 3, 0.18),
+      new MeshStandardMaterial({ color: 2829878, roughness: 0.4, metalness: 0.45 })
+    );
+    lidSlab.position.set(0, 0.21, D2 / 2 - 0.21);
+    const jtexLid = new CanvasTexture(jcardCanvas);
+    jtexLid.colorSpace = SRGBColorSpace;
+    jtexLid.anisotropy = 8;
+    const art = new Mesh(
+      new PlaneGeometry(W - 1.4, D2 - 1.4).rotateX(-Math.PI / 2),
+      new MeshStandardMaterial({ map: jtexLid, roughness: 0.8 })
+    );
+    art.rotation.y = Math.PI;
+    art.position.set(0, 0.435, D2 / 2 - 0.21);
+    lid.add(lidSlab, art);
+    lid.position.set(0, 0.5, -D2 / 2);
+    root.add(lid);
+    let p = 0, target = 0;
+    return {
+      root,
+      lidGroup: lid,
+      setLid(open) {
+        target = open ? 1 : 0;
+      },
+      get lidOpen() {
+        return target === 1;
+      },
+      tick(dt) {
+        p = clamp2(p + Math.sign(target - p) * dt / 0.9, 0, 1);
+        const k = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+        lid.rotation.x = -k * 1.9;
+      }
+    };
+  }
   async function boot() {
-    await LABEL_ART_READY;
+    const coverImg = await ART_READY;
     deck = buildDeck();
     deck.root.traverse((o) => {
       if (o.isMesh) o.receiveShadow = true;
     });
     scene.add(deck.root);
+    tapeBox = buildBox(coverImg);
+    tapeBox.root.traverse((o) => {
+      if (o.isMesh) {
+        o.castShadow = true;
+        o.receiveShadow = true;
+      }
+    });
+    scene.add(tapeBox.root);
     cas = createCassette({ title: MIXTAPE.title, artist: MIXTAPE.no, album: `${MIXTAPE.year} \xB7 \u9650\u91CF 1 \u5F20`, minutes: "60" });
     cas.st.onEnd = endOfSide;
-    cas.root.position.copy(HOVER.pos);
-    cas.root.rotation.y = HOVER.rotY;
+    placeAt(cas.root, BOX_TAPE_POSE);
     cas.root.traverse((o) => {
       if (o.isMesh) o.castShadow = true;
     });
@@ -31373,20 +31503,24 @@ void main() {
     addEventListener("resize", onResize);
     bindPointer();
     updateLCD(true);
-    hint("\u70B9\u51FB\u78C1\u5E26 \xB7 \u7FFB\u9762\u3000\u3000\u70B9\u51FB\u5361\u5EA7 \xB7 \u653E\u5165\u78C1\u5E26");
+    renderer.compile(scene, camera);
+    renderer.render(scene, camera);
+    hint("\u70B9\u51FB\u78C1\u5E26\u76D2 \xB7 \u6253\u5F00\u76D2\u76D6");
     document.body.classList.add("ready");
     loop();
   }
   var side = "A";
-  var tapeIn = false;
+  var tapeLoc = "box";
   var flipped = false;
   var playing = false;
   var wind = null;
   var animP = null;
+  var busy = false;
+  var boxOpen = false;
   var lastTrackIdx = -1;
   var fmt = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
   function setWind(w) {
-    if (!tapeIn || animP) return;
+    if (tapeLoc !== "deck" || busy) return;
     if (w === wind) w = null;
     wind = w;
     deck.litKey("rew", w === "rew");
@@ -31399,11 +31533,11 @@ void main() {
     if (w === "rew") {
       cas.st.dir = 1;
       audio.start();
-      audio.setLevel(0.4);
+      audio.setLevel(0.2);
     } else if (w === "ff") {
       cas.st.dir = 2;
       audio.start();
-      audio.setLevel(0.4);
+      audio.setLevel(0.2);
     } else {
       cas.st.dir = -1;
       cas.st.playing = false;
@@ -31412,8 +31546,8 @@ void main() {
     updateLCD(true);
   }
   function togglePlay(force) {
-    if (!tapeIn || animP) {
-      if (!tapeIn) hint("\u5148\u628A\u78C1\u5E26\u653E\u5165\u5361\u5EA7 \u2014\u2014 \u70B9\u51FB\u5361\u5EA7");
+    if (tapeLoc !== "deck" || busy) {
+      if (tapeLoc !== "deck") hint("\u78C1\u5E26\u8FD8\u5728\u76D2\u5B50\u91CC \u2014\u2014 \u70B9\u51FB\u76D2\u5B50\u6253\u5F00\uFF0C\u53D6\u51FA\u78C1\u5E26\u653E\u5165\u5361\u5EA7");
       return;
     }
     const on = force ?? !playing;
@@ -31428,7 +31562,7 @@ void main() {
         ensureAnalyser();
       }
       audio.start();
-      audio.setLevel(0.4);
+      audio.setLevel(0.13);
     } else {
       audioEl.pause();
       audio.stop();
@@ -31457,12 +31591,17 @@ void main() {
     wind = "rew";
     deck.litKey("rew", true);
     audio.start();
-    audio.setLevel(0.4);
+    audio.setLevel(0.2);
     updateLCD(true);
   }
-  async function sideFlip() {
-    if (tapeIn || animP) {
-      if (tapeIn) hint("\u5148\u6309 \u23CF \u5F39\u51FA\u78C1\u5E26\u518D\u7FFB\u9762");
+  function sideFlip() {
+    if (busy) return;
+    if (tapeLoc === "deck") {
+      hint("\u5148\u6309 \u23CF \u5F39\u51FA\u78C1\u5E26\u518D\u7FFB\u9762");
+      return;
+    }
+    if (tapeLoc === "box") {
+      hint("\u5148\u628A\u78C1\u5E26\u4ECE\u76D2\u91CC\u53D6\u51FA\u6765");
       return;
     }
     const frac = audioOk() && side === loadedSide ? clamp2(audioEl.currentTime / audioEl.duration, 0, 1) : cas.st.duration > 0 ? clamp2(cas.st.time / cas.st.duration, 0, 1) : 0;
@@ -31475,124 +31614,144 @@ void main() {
     audioEl.src = sd.src;
     loadedSide = side;
     audioEl.load();
-    await new Promise((res) => {
-      let done = false;
-      const ok = () => {
-        if (!done) {
-          done = true;
-          res();
-        }
-      };
-      audioEl.addEventListener("loadedmetadata", ok, { once: true });
-      setTimeout(ok, 2500);
-    });
-    if (audioOk()) {
-      cas.st.duration = audioEl.duration;
-      const at = audioEl.duration * (1 - frac);
-      audioEl.currentTime = at;
-      cas.setProgress(at / audioEl.duration);
-    }
+    audioEl.addEventListener("loadedmetadata", () => {
+      if (audioOk()) {
+        cas.st.duration = audioEl.duration;
+        const at = audioEl.duration * (1 - frac);
+        audioEl.currentTime = at;
+        cas.setProgress(at / audioEl.duration);
+      }
+    }, { once: true });
     hint(`\u7FFB\u5230 ${sd.cn}\u3000\u70B9\u51FB\u5361\u5EA7 \xB7 \u653E\u5165\u78C1\u5E26`);
     updateLCD(true);
   }
   var loadedSide = "A";
   var EASE = (t2) => t2 < 0.5 ? 2 * t2 * t2 : 1 - Math.pow(-2 * t2 + 2, 2) / 2;
-  function insertTape() {
-    if (tapeIn || animP) return;
-    stopAll();
-    animP = { kind: "insert", p: 0 };
-    deck.door.set(true);
-    audio.clunk(0.6);
-  }
-  function ejectTape() {
-    if (!tapeIn || animP) return;
-    stopAll();
-    animP = { kind: "eject", p: 0 };
-    deck.door.set(true);
-    audio.clunk(0.6);
+  function flyTape(toPos, toRot, after, doorSeq) {
+    busy = true;
+    animP = {
+      p: 0,
+      dur: 1.2,
+      q0: cas.root.quaternion.clone(),
+      q1: new Quaternion().setFromEuler(new Euler(toRot.x || 0, toRot.y || 0, toRot.z || 0)),
+      p0: cas.root.position.clone(),
+      p1: toPos.clone(),
+      after,
+      doorSeq
+    };
+    cas.st.driven = false;
+    cas.st.playing = false;
   }
   function stepAnim(dt) {
     if (!animP) return;
-    animP.p += dt / 1.15;
-    const k = EASE(clamp2(animP.p, 0, 1));
-    const bay = deck.bayPose;
-    if (animP.kind === "insert") {
-      cas.root.position.lerpVectors(HOVER.pos, bay.pos, k);
-      cas.root.rotation.y = HOVER.rotY * (1 - k);
-      cas.root.rotation.x = bay.rotX * k;
-      cas.root.rotation.z = 0;
-      if (animP.p >= 0.42 && !animP.doorClosed) {
-        animP.doorClosed = true;
+    animP.p = Math.min(1, animP.p + dt / animP.dur);
+    const k = EASE(animP.p);
+    cas.root.position.lerpVectors(animP.p0, animP.p1, k);
+    cas.root.quaternion.slerpQuaternions(animP.q0, animP.q1, k);
+    renderer.shadowMap.needsUpdate = true;
+    if (animP.doorSeq === "in") {
+      if (animP.p > 0.3 && !animP.d1) {
+        animP.d1 = true;
+        deck.door.set(true);
+      }
+      if (animP.p > 0.78 && !animP.d2) {
+        animP.d2 = true;
         deck.door.set(false);
       }
-      if (animP.p >= 1) {
-        tapeIn = true;
-        animP = null;
-        audio.clunk(0.9);
-        cas.root.position.copy(bay.pos);
-        cas.root.rotation.set(bay.rotX, 0, 0);
-        lastTrackIdx = -1;
-        if (loadedSide !== side) swapAudioTo(side);
-        hint("SPACE \u64AD\u653E\u3000R \u5012\u5E26\u3000T \u5FEB\u8FDB\u3000S \u505C\u6B62\u3000\u23CF \u5F39\u51FA");
-        updateLCD(true);
+    } else if (animP.doorSeq === "out") {
+      if (animP.p > 0.22 && !animP.d1) {
+        animP.d1 = true;
+        deck.door.set(true);
       }
-    } else {
-      cas.root.position.lerpVectors(bay.pos, HOVER.pos, k);
-      cas.root.rotation.x = bay.rotX * (1 - k);
-      cas.root.rotation.y = HOVER.rotY * k;
-      if (animP.p >= 0.42 && !animP.doorClosed) {
-        animP.doorClosed = true;
+      if (animP.p > 0.8 && !animP.d2) {
+        animP.d2 = true;
         deck.door.set(false);
-      }
-      if (animP.p >= 1) {
-        tapeIn = false;
-        animP = null;
-        audio.clunk(0.8);
-        cas.root.position.copy(HOVER.pos);
-        cas.root.rotation.set(0, HOVER.rotY, 0);
-        lastTrackIdx = -1;
-        hint("\u70B9\u51FB\u78C1\u5E26 \xB7 \u7FFB\u9762\u3000\u3000\u70B9\u51FB\u5361\u5EA7 \xB7 \u653E\u5165\u78C1\u5E26");
-        updateLCD(true);
       }
     }
+    if (animP.p >= 1) {
+      const cb = animP.after;
+      busy = false;
+      animP = null;
+      renderer.shadowMap.needsUpdate = true;
+      if (cb) cb();
+    }
   }
-  function swapAudioTo(s) {
-    loadedSide = s;
-    audioEl.src = MIXTAPE.sides[s].src;
-    audioEl.load();
-    audioEl.addEventListener("loadedmetadata", () => {
-      if (audioOk()) cas.st.duration = audioEl.duration;
-    }, { once: true });
+  function placeAt(root, pose) {
+    root.position.copy(pose.pos);
+    root.rotation.set(pose.rot.x || 0, pose.rot.y || 0, pose.rot.z || 0);
   }
-  var popEl = $("#trkpop");
+  function takeOut() {
+    if (tapeLoc !== "box" || busy) return;
+    play("open");
+    flyTape(HOVER.pos, HOVER.rot, () => {
+      tapeLoc = "hand";
+      tapeBox.setLid(false);
+      boxOpen = false;
+      clack();
+      hint("\u70B9\u51FB\u5361\u5EA7 \xB7 \u653E\u5165\u78C1\u5E26\u3000\u3000\u70B9\u51FB\u78C1\u5E26 \xB7 \u7FFB\u9762 A/B");
+      updateLCD(true);
+    }, null);
+  }
+  function insertTape() {
+    if (tapeLoc !== "hand" || busy) return;
+    stopAll();
+    play("clack");
+    const bay = deck.bayPose;
+    flyTape(bay.pos, flipped ? { x: Math.PI / 2, y: Math.PI } : { x: bay.rotX }, () => {
+      tapeLoc = "deck";
+      clack();
+      setKeys(true);
+      lastTrackIdx = -1;
+      hint("SPACE \u64AD\u653E \xB7 R \u5012\u5E26 \xB7 T \u5FEB\u8FDB \xB7 S \u505C\u6B62 \xB7 \u23CF \u5F39\u51FA");
+      updateLCD(true);
+    }, "in");
+  }
+  function ejectTape() {
+    if (tapeLoc !== "deck" || busy) return;
+    stopAll();
+    play("open");
+    flyTape(HOVER.pos, HOVER.rot, () => {
+      tapeLoc = "hand";
+      clack();
+      setKeys(false);
+      lastTrackIdx = -1;
+      hint("\u70B9\u51FB\u78C1\u5E26 \xB7 \u7FFB\u9762 A/B\u3000\u3000\u70B9\u51FB\u5361\u5EA7 \xB7 \u653E\u5165");
+      updateLCD(true);
+    }, "out");
+  }
+  function setKeys(on) {
+    for (const id of ["bPlay", "bStop", "bRew", "bFf", "bEject"]) $(id) && ($(id).disabled = !on);
+  }
   var popTimer = 0;
   function announceTrack(sd, tr) {
-    $("#tp-side").textContent = sd.cn;
-    $("#tp-no").textContent = tr[0];
-    $("#tp-name").textContent = tr[1];
-    popEl.classList.add("show");
+    const side2 = $("tp-side"), no = $("tp-no"), name = $("tp-name"), pop = $("trkpop");
+    if (!side2 || !no || !name || !pop) return;
+    side2.textContent = sd.cn;
+    no.textContent = tr[0];
+    name.textContent = tr[1];
+    pop.classList.add("show");
     clearTimeout(popTimer);
-    popTimer = setTimeout(() => popEl.classList.remove("show"), 6500);
+    popTimer = setTimeout(() => pop.classList.remove("show"), 6500);
   }
-  var hintEl = $("#hint");
   var hintTimer = 0;
   function hint(text) {
-    hintEl.textContent = text;
+    const el = $("hint");
+    if (!el) return;
+    el.textContent = text;
+    el.style.opacity = ".9";
     clearTimeout(hintTimer);
-    hintEl.classList.add("show");
-    hintTimer = setTimeout(() => hintEl.classList.remove("show"), 9e3);
+    hintTimer = setTimeout(() => el.style.opacity = ".35", 9e3);
   }
-  function updateLCD(force = false) {
+  function updateLCD(force) {
     if (!deck) return;
     const sd = MIXTAPE.sides[side];
-    if (!tapeIn) {
+    if (tapeLoc !== "deck") {
       deck.lcd.set(`NO TAPE \xB7 SIDE ${side} UP`, "--:-- / --:--", "");
       deck.lcdGlow.intensity = 0.7;
       return;
     }
     const t2 = audioOk() ? audioEl.currentTime : cas.st.time;
-    const idx = trackAt(side, t2);
-    const tr = sd.tracks[idx];
+    const tr = sd.tracks[trackAt(side, t2)];
     const glyph = wind === "rew" ? "\u25C0\u25C0" : wind === "ff" ? "\u25B6\u25B6" : playing ? "\u25B6" : "\u25A0";
     deck.lcd.set(`${sd.cn}\xB7${tr[0]} ${tr[1]}`.slice(0, 26), `${fmt(t2)} / ${sd.total}`, glyph);
     deck.lcdGlow.intensity = playing || wind ? 3.2 : 1.1;
@@ -31637,10 +31796,11 @@ void main() {
     ndc.set(cx / innerWidth * 2 - 1, -(cy / innerHeight) * 2 + 1);
     ray.setFromCamera(ndc, camera);
     const targets = [];
-    if (cas && !tapeIn && !animP) targets.push(cas.assembly);
+    if (cas && tapeLoc !== "deck" && !animP) targets.push(cas.assembly);
+    if (tapeBox && tapeLoc === "box") targets.push(tapeBox.root);
     if (deck) {
       for (const k of deck.keyMeshes) targets.push(k.mesh);
-      if (!tapeIn && !animP) targets.push(deck.root);
+      if (tapeLoc === "hand" && !animP) targets.push(deck.root);
     }
     const hits = ray.intersectObjects(targets, true);
     if (!hits.length) return null;
@@ -31656,6 +31816,13 @@ void main() {
       let p = o;
       while (p) {
         if (p === cas.assembly) return { kind: "tape" };
+        p = p.parent;
+      }
+    }
+    {
+      let p = o;
+      while (p) {
+        if (p === tapeBox.root) return { kind: "box" };
         p = p.parent;
       }
     }
@@ -31687,14 +31854,20 @@ void main() {
       else if (hit.id === "stop") stopAll();
       else if (hit.id === "rew") setWind(wind === "rew" ? null : "rew");
       else if (hit.id === "ff") setWind(wind === "ff" ? null : "ff");
-      else if (hit.id === "eject") {
-        tapeIn ? ejectTape() : insertTape();
-      }
+      else if (hit.id === "eject") ejectTape();
     } else if (hit.kind === "tape") {
-      sideFlip();
+      if (tapeLoc === "box") {
+        if (tapeBox.lidOpen) takeOut();
+        else hint("\u5148\u70B9\u51FB\u76D2\u76D6 \xB7 \u6253\u5F00\u78C1\u5E26\u76D2");
+      } else if (tapeLoc === "hand") sideFlip();
+    } else if (hit.kind === "box") {
+      boxOpen = !boxOpen;
+      tapeBox.setLid(boxOpen);
+      play(boxOpen ? "open" : "clack");
+      if (boxOpen && tapeLoc === "box") hint("\u70B9\u51FB\u78C1\u5E26 \xB7 \u53D6\u51FA\u78C1\u5E26");
     } else if (hit.kind === "deck") {
-      if (!tapeIn) insertTape();
-      else hint("\u23CF \u5F39\u51FA\u78C1\u5E26 \xB7 SPACE \u64AD\u653E/\u6682\u505C");
+      if (tapeLoc === "hand") insertTape();
+      else if (tapeLoc === "box") hint("\u5148\u4ECE\u76D2\u91CC\u53D6\u51FA\u78C1\u5E26");
     }
   }
   addEventListener("keydown", (e) => {
@@ -31703,29 +31876,28 @@ void main() {
     if (k === " ") {
       e.preventDefault();
       togglePlay();
-    } else if (k === "r") {
-      deck.pressKey("rew");
-      setWind(wind === "rew" ? null : "rew");
-    } else if (k === "t") {
-      deck.pressKey("ff");
-      setWind(wind === "ff" ? null : "ff");
-    } else if (k === "s") {
-      deck.pressKey("stop");
-      stopAll();
-    } else if (k === "e") {
-      deck.pressKey("eject");
-      tapeIn ? ejectTape() : insertTape();
-    } else if (k === "f") sideFlip();
+    } else if (k === "r" && tapeLoc === "deck") setWind(wind === "rew" ? null : "rew");
+    else if (k === "t" && tapeLoc === "deck") setWind(wind === "ff" ? null : "ff");
+    else if (k === "s") stopAll();
+    else if (k === "e" && tapeLoc === "deck") ejectTape();
+    else if (k === "f") sideFlip();
+    else if (k === "b" && tapeLoc === "box" && tapeBox) {
+      boxOpen = !boxOpen;
+      tapeBox.setLid(boxOpen);
+    }
   });
   var last = performance.now();
   var t = 0;
   var lastTitle = "";
   var uiAcc = 0;
-  var subjectPos = new Vector3();
   function loop() {
     const now = performance.now();
     const dt = Math.min((now - last) / 1e3, 1 / 20);
-    last = now;
+    frame(dt);
+    requestAnimationFrame(loop);
+  }
+  function frame(dt) {
+    last = performance.now();
     t += dt;
     if (wind === "rew" || cas.st.dir === 1 && cas.st.playing && !playing) {
       cas.st.driven = false;
@@ -31739,34 +31911,33 @@ void main() {
         lastTrackIdx = -1;
         updateLCD(true);
       }
-    } else if (audioOk() && !audioEl.paused && !audioEl.ended && playing) {
+    } else if (audioOk() && !audioEl.paused && !audioEl.ended && playing && tapeLoc === "deck") {
       cas.st.driven = true;
       cas.setProgress(audioEl.currentTime / audioEl.duration);
     } else if (!playing && !wind) {
       cas.st.driven = false;
       cas.st.playing = false;
     }
-    if (!tapeIn && !animP) {
+    if (tapeLoc === "hand" && !animP) {
       const bob = reduce ? 0 : Math.sin(t * 0.7) * 0.09;
-      cas.root.position.y = HOVER.pos.y + bob;
-      cas.root.rotation.y = HOVER.rotY + (reduce ? 0 : Math.sin(t * 0.24) * 0.06);
+      cas.root.position.set(HOVER.pos.x, HOVER.pos.y + bob, HOVER.pos.z);
+      cas.root.rotation.y = HOVER.rot.y + (reduce ? 0 : Math.sin(t * 0.24) * 0.06);
       cas.root.rotation.z = reduce ? 0 : Math.sin(t * 0.4) * 0.012;
     }
     stepAnim(dt);
     const st = cas.update(dt);
     deck.tick(dt);
+    tapeBox.tick(dt);
     tickVU();
-    if (animP || Math.abs(st.flip - st.flipTarget) > 0.01) renderer.shadowMap.needsUpdate = true;
     uiAcc += dt;
     if (uiAcc > 0.25) {
       uiAcc = 0;
       updateLCD();
-      if (audioOk() && playing) {
+      if (audioOk() && playing && tapeLoc === "deck") {
         const idx = trackAt(side, audioEl.currentTime);
         if (idx !== lastTrackIdx) {
           lastTrackIdx = idx;
-          const sd = MIXTAPE.sides[side];
-          announceTrack(sd, sd.tracks[idx]);
+          announceTrack(MIXTAPE.sides[side], MIXTAPE.sides[side].tracks[idx]);
         }
       }
       const title = playing ? `\u266A ${MIXTAPE.sides[side].cn} \xB7 ${MIXTAPE.title}` : `${MIXTAPE.title} \u2014 MIXTAPE NO.001`;

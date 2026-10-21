@@ -1,0 +1,99 @@
+127.0.0.1 - - [21/Oct/2026 21:13:15] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [21/Oct/2026 21:13:26] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [21/Oct/2026 21:13:26] "GET /assets/cover.png HTTP/1.1" 200 -
+127.0.0.1 - - [21/Oct/2026 21:13:26] "GET /assets/label-a.png HTTP/1.1" 200 -
+127.0.0.1 - - [21/Oct/2026 21:13:26] "GET /assets/label-b.png HTTP/1.1" 200 -
+127.0.0.1 - - [21/Oct/2026 21:13:26] "GET /assets/sfx/click.wav HTTP/1.1" 200 -
+127.0.0.1 - - [21/Oct/2026 21:13:26] "GET /assets/sfx/open.wav HTTP/1.1" 200 -
+127.0.0.1 - - [21/Oct/2026 21:13:26] "GET /assets/sfx/clack.wav HTTP/1.1" 200 -
+127.0.0.1 - - [21/Oct/2026 21:13:26] "GET /assets/sfx/stop.wav HTTP/1.1" 200 -
+127.0.0.1 - - [21/Oct/2026 21:13:26] "GET /assets/A%20side.mp3 HTTP/1.1" 200 -
+127.0.0.1 - - [21/Oct/2026 21:13:36] code 404, message File not found
+127.0.0.1 - - [21/Oct/2026 21:13:36] "GET /favicon.ico HTTP/1.1" 404 -
+----------------------------------------
+Exception occurred during processing of request from ('127.0.0.1', 49889)
+Traceback (most recent call last):
+  File "C:\Users\one\AppData\Local\Programs\Python\Python311\Lib\socketserver.py", line 691, in process_request_thread
+    self.finish_request(request, client_address)
+  File "C:\Users\one\AppData\Local\Programs\Python\Python311\Lib\http\server.py", line 1310, in finish_request
+    self.RequestHandlerClass(request, client_address, self,
+  File "C:\Users\one\AppData\Local\Programs\Python\Python311\Lib\http\server.py", line 671, in __init__
+    super().__init__(*args, **kwargs)
+  File "C:\Users\one\AppData\Local\Programs\Python\Python311\Lib\socketserver.py", line 755, in __init__
+    self.handle()
+  File "C:\Users\one\AppData\Local\Programs\Python\Python311\Lib\http\server.py", line 436, in handle
+    self.handle_one_request()
+  File "C:\Users\one\AppData\Local\Programs\Python\Python311\Lib\http\server.py", line 424, in handle_one_request
+    method()
+  File "C:\Users\one\AppData\Local\Programs\Python\Python311\Lib\http\server.py", line 678, in do_GET
+    self.copyfile(f, self.wfile)
+  File "C:\Users\one\AppData\Local\Programs\Python\Python311\Lib\http\server.py", line 877, in copyfile
+    shutil.copyfileobj(source, outputfile)
+  File "C:\Users\one\AppData\Local\Programs\Python\Python311\Lib\shutil.py", line 200, in copyfileobj
+    fdst_write(buf)
+  File "C:\Users\one\AppData\Local\Programs\Python\Python311\Lib\socketserver.py", line 834, in write
+    self._sock.sendall(b)
+ConnectionResetError: [WinError 10054] 远程主机强迫关闭了一个现有的连接。
+----------------------------------------
+127.0.0.1 - - [21/Oct/2026 21:16:21] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [21/Oct/2026 21:16:21] "GET /assets/sfx/clack.wav HTTP/1.1" 304 -
+127.0.0.1 - - [21/Oct/2026 21:16:21] "GET /assets/sfx/click.wav HTTP/1.1" 304 -
+127.0.0.1 - - [21/Oct/2026 21:16:21] "GET /assets/sfx/open.wav HTTP/1.1" 304 -
+127.0.0.1 - - [21/Oct/2026 21:16:21] "GET /assets/sfx/stop.wav HTTP/1.1" 304 -
+127.0.0.1 - - [21/Oct/2026 21:16:21] "GET /assets/A%20side.mp3 HTTP/1.1" 200 -
+127.0.0.1 - - [21/Oct/2026 21:16:28] code 404, message File not found
+127.0.0.1 - - [21/Oct/2026 21:16:28] "GET /favicon.ico HTTP/1.1" 404 -
+----------------------------------------
+Exception occurred during processing of request from ('127.0.0.1', 60985)
+Traceback (most recent call last):
+  File "C:\Users\one\AppData\Local\Programs\Python\Python311\Lib\socketserver.py", line 691, in process_request_thread
+    self.finish_request(request, client_address)
+  File "C:\Users\one\AppData\Local\Programs\Python\Python311\Lib\http\server.py", line 1310, in finish_request
+    self.RequestHandlerClass(request, client_address, self,
+  File "C:\Users\one\AppData\Local\Programs\Python\Python311\Lib\http\server.py", line 671, in __init__
+    super().__init__(*args, **kwargs)
+  File "C:\Users\one\AppData\Local\Programs\Python\Python311\Lib\socketserver.py", line 755, in __init__
+    self.handle()
+  File "C:\Users\one\AppData\Local\Programs\Python\Python311\Lib\http\server.py", line 436, in handle
+    self.handle_one_request()
+  File "C:\Users\one\AppData\Local\Programs\Python\Python311\Lib\http\server.py", line 424, in handle_one_request
+    method()
+  File "C:\Users\one\AppData\Local\Programs\Python\Python311\Lib\http\server.py", line 678, in do_GET
+    self.copyfile(f, self.wfile)
+  File "C:\Users\one\AppData\Local\Programs\Python\Python311\Lib\http\server.py", line 877, in copyfile
+    shutil.copyfileobj(source, outputfile)
+  File "C:\Users\one\AppData\Local\Programs\Python\Python311\Lib\shutil.py", line 200, in copyfileobj
+    fdst_write(buf)
+  File "C:\Users\one\AppData\Local\Programs\Python\Python311\Lib\socketserver.py", line 834, in write
+    self._sock.sendall(b)
+ConnectionResetError: [WinError 10054] 远程主机强迫关闭了一个现有的连接。
+----------------------------------------
+127.0.0.1 - - [21/Oct/2026 21:16:57] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [21/Oct/2026 21:16:57] "GET /assets/A%20side.mp3 HTTP/1.1" 200 -
+127.0.0.1 - - [21/Oct/2026 21:17:04] code 404, message File not found
+127.0.0.1 - - [21/Oct/2026 21:17:04] "GET /favicon.ico HTTP/1.1" 404 -
+----------------------------------------
+Exception occurred during processing of request from ('127.0.0.1', 53106)
+Traceback (most recent call last):
+  File "C:\Users\one\AppData\Local\Programs\Python\Python311\Lib\socketserver.py", line 691, in process_request_thread
+    self.finish_request(request, client_address)
+  File "C:\Users\one\AppData\Local\Programs\Python\Python311\Lib\http\server.py", line 1310, in finish_request
+    self.RequestHandlerClass(request, client_address, self,
+  File "C:\Users\one\AppData\Local\Programs\Python\Python311\Lib\http\server.py", line 671, in __init__
+    super().__init__(*args, **kwargs)
+  File "C:\Users\one\AppData\Local\Programs\Python\Python311\Lib\socketserver.py", line 755, in __init__
+    self.handle()
+  File "C:\Users\one\AppData\Local\Programs\Python\Python311\Lib\http\server.py", line 436, in handle
+    self.handle_one_request()
+  File "C:\Users\one\AppData\Local\Programs\Python\Python311\Lib\http\server.py", line 424, in handle_one_request
+    method()
+  File "C:\Users\one\AppData\Local\Programs\Python\Python311\Lib\http\server.py", line 678, in do_GET
+    self.copyfile(f, self.wfile)
+  File "C:\Users\one\AppData\Local\Programs\Python\Python311\Lib\http\server.py", line 877, in copyfile
+    shutil.copyfileobj(source, outputfile)
+  File "C:\Users\one\AppData\Local\Programs\Python\Python311\Lib\shutil.py", line 200, in copyfileobj
+    fdst_write(buf)
+  File "C:\Users\one\AppData\Local\Programs\Python\Python311\Lib\socketserver.py", line 834, in write
+    self._sock.sendall(b)
+ConnectionResetError: [WinError 10054] 远程主机强迫关闭了一个现有的连接。
+----------------------------------------

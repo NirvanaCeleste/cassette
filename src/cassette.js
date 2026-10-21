@@ -11,7 +11,7 @@ import { clamp, damp, smoothstep } from './anim.js';
 export const DIM = {
   W: 10.04, H: 6.38, D: 1.20,
   hw: 5.02, hh: 3.19, hd: 0.60,
-  rOut: 0.30,
+  rOut: 0.42,
   PT: 0.11, BV: 0.03,          // plate thickness / bevel
   wall: 0.30,
   labelInset: 0.26,
