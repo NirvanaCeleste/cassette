@@ -205,7 +205,7 @@ async function boot() {
   addEventListener('resize', onResize);
   bindPointer();
   renderer.render(scene, camera);
-  document.body.classList.add('s3d-ready');
+  document.body.classList.add('ready');
   hint('点击磁带盒 · 打开盒盖');
   loop(performance.now());
 }
