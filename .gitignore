@@ -2,3 +2,10 @@ node_modules/
 *.bak
 _patch_*
 package-lock.json
+node_modules/
+*.bak
+_patch_*
+package-lock.json
+test.html
+dist/test.js
+push.log

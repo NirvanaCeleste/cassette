@@ -33386,6 +33386,7 @@ void main() {
     composer = c.composer;
     grade = c.grade;
     bloom = c.bloom;
+    grade.uniforms.uFade.value = 1;
   }
   var orbit = new Orbit(canvas2, camera, {
     theta: 0.62,
@@ -33855,34 +33856,6 @@ void main() {
     if (bloom) bloom.setSize(bw, bh);
     floorBase.setSize && floorBase.setSize(w, h);
   }
-  window.__snap2 = () => {
-    renderer.info.autoReset = true;
-    renderer.render(scene, camera);
-    window.__info = { calls: renderer.info.render.calls, tris: renderer.info.render.triangles };
-    const src = renderer.domElement;
-    const c = document.createElement("canvas");
-    c.width = 720;
-    c.height = Math.round(src.height / src.width * 720) || 405;
-    c.getContext("2d").drawImage(src, 0, 0, c.width, c.height);
-    return c.toDataURL("image/jpeg", 0.7);
-  };
-  window.__snap = () => {
-    composer.render();
-    const src = renderer.domElement;
-    const c = document.createElement("canvas");
-    c.width = 720;
-    c.height = Math.round(src.height / src.width * 720) || 405;
-    c.getContext("2d").drawImage(src, 0, 0, c.width, c.height);
-    return c.toDataURL("image/jpeg", 0.7);
-  };
-  window.__dbg = () => ({
-    calls: renderer.info.render.calls,
-    tris: renderer.info.render.triangles,
-    cam: camera.position.toArray().map((v) => +v.toFixed(1)),
-    size: [renderer.domElement.width, renderer.domElement.height],
-    env: !!scene.environment,
-    veil: getComputedStyle(document.getElementById("veil")).opacity
-  });
   boot().catch((err) => {
     console.error(err);
     hint("\u521D\u59CB\u5316\u5931\u8D25\uFF1A" + (err?.message || err));

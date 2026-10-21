@@ -65,6 +65,8 @@ let composer, grade, bloom;
 function buildComposer() {
   const c = createComposer(renderer, scene, camera);
   composer = c.composer; grade = c.grade; bloom = c.bloom;
+  // uFade 是整帧的淡入系数（着色器输出 c * uFade），不点亮就是一帧纯黑
+  grade.uniforms.uFade.value = 1;
 }
 
 /* 相机：可拖拽旋转 / 滚轮缩放 / 双击回家 */
@@ -535,32 +537,6 @@ function onResize() {
   floorBase.setSize && floorBase.setSize(w, h);
 }
 
-window.__snap2 = () => {
-  renderer.info.autoReset = true;
-  renderer.render(scene, camera);
-  window.__info = { calls: renderer.info.render.calls, tris: renderer.info.render.triangles };
-  const src = renderer.domElement;
-  const c = document.createElement('canvas');
-  c.width = 720; c.height = Math.round(src.height / src.width * 720) || 405;
-  c.getContext('2d').drawImage(src, 0, 0, c.width, c.height);
-  return c.toDataURL('image/jpeg', 0.7);
-};
-window.__snap = () => {
-  composer.render();
-  const src = renderer.domElement;
-  const c = document.createElement('canvas');
-  c.width = 720; c.height = Math.round(src.height / src.width * 720) || 405;
-  c.getContext('2d').drawImage(src, 0, 0, c.width, c.height);
-  return c.toDataURL('image/jpeg', 0.7);
-};
-window.__dbg = () => ({
-  calls: renderer.info.render.calls,
-  tris: renderer.info.render.triangles,
-  cam: camera.position.toArray().map((v) => +v.toFixed(1)),
-  size: [renderer.domElement.width, renderer.domElement.height],
-  env: !!scene.environment,
-  veil: getComputedStyle(document.getElementById('veil')).opacity,
-});
 boot().catch((err) => {
   console.error(err);
   hint('初始化失败：' + (err?.message || err));
