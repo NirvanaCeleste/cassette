@@ -17,6 +17,10 @@ const canvas = document.getElementById('gl');
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const IS_MOBILE = matchMedia('(pointer: coarse)').matches;
 let resScale = 1, emaFrame = 16, perfAcc = 0;
+/* 按需渲染：静止时零渲染。wake(n) 表示接下来 n 帧需要画面 */
+let frameGate = 0, lastRender = 0;
+const FRAME_MIN = 1000 / 30;                 // 连续渲染时也只跑 30fps
+function wake(n = 2) { frameGate = Math.max(frameGate, n); }
 const $ = (id) => document.getElementById(id);
 
 /* 机械音效 */
@@ -84,14 +88,14 @@ const orbit = new Orbit(canvas, camera, {
   theta: 0.72, phi: 1.06, radius: 52, target: new THREE.Vector3(0, 1.6, 3),
   minR: 18, maxR: 90, minPhi: 0.18, maxPhi: 1.5,
   auto: false, reduce,
-  onInteract: (dragging) => document.body.classList.toggle('dragging', dragging),
+  onInteract: (dragging) => { document.body.classList.toggle('dragging', dragging); wake(6); },
 });
 orbit.home = { theta: 0.72, phi: 1.06, radius: 52 };
 
 /* ============================== 实体 ================================== */
 const audio = new TapeAudio();
 const audioEl = new Audio(MIXTAPE.sides.A.src);
-audioEl.preload = 'auto';
+audioEl.preload = 'metadata';   // 流式播放，不预载整面 68MB
 audioEl.volume = .9;
 
 let cas = null, deck = null, tapeBox = null;
@@ -236,7 +240,7 @@ async function boot() {
   renderer.render(scene, camera);
   hint('点击磁带盒 · 打开盒盖');
   document.body.classList.add('ready');
-  loop();
+  loop(performance.now());
 }
 
 /* ═══════════════ 走带状态机 ═══════════════
@@ -257,6 +261,7 @@ function setWind(w) {
   if (tapeLoc !== 'deck' || busy) return;
   if (w === wind) w = null;
   wind = w;
+  wake(6);
   deck.litKey('rew', w === 'rew');
   deck.litKey('ff', w === 'ff');
   playing = false;
@@ -282,6 +287,7 @@ function togglePlay(force) {
   const on = force ?? !playing;
   if (on && wind) setWind(null);
   playing = on;
+  wake(6);
   deck.litKey('play', on);
   if (on) {
     if (audioOk()) {
@@ -336,6 +342,7 @@ function sideFlip() {
     : (cas.st.duration > 0 ? clamp(cas.st.time / cas.st.duration, 0, 1) : 0);
   side = otherSide(side);
   flipped = side === 'B';
+  wake(8);
   cas.setFlip(flipped);
   audio.clunk(0.9);
   lastTrackIdx = -1;
@@ -375,6 +382,7 @@ function flyTape(toPos, toRot, after, doorSeq) {
 function stepAnim(dt) {
   if (!animP) return;
   animP.p = Math.min(1, animP.p + dt / animP.dur);
+  wake(2);
   const k = EASE(animP.p);
   cas.root.position.lerpVectors(animP.p0, animP.p1, k);
   cas.root.quaternion.slerpQuaternions(animP.q0, animP.q1, k);
@@ -479,8 +487,9 @@ function updateLCD(force) {
   const t = audioOk() ? audioEl.currentTime : cas.st.time;
   const tr = sd.tracks[trackAt(side, t)];
   const glyph = wind === 'rew' ? '◀◀' : wind === 'ff' ? '▶▶' : playing ? '▶' : '■';
-  deck.lcd.set(`${sd.cn}·${tr[0]} ${tr[1]}`.slice(0, 26), `${fmt(t)} / ${sd.total}`, glyph);
+  const changed = deck.lcd.set(`${sd.cn}·${tr[0]} ${tr[1]}`.slice(0, 26), `${fmt(t)} / ${sd.total}`, glyph);
   deck.lcdGlow.intensity = playing || wind ? 3.2 : 1.1;
+  return changed;
 }
 
 /* VU 分析器（懒建，需用户手势） */
@@ -604,10 +613,20 @@ let last = performance.now(), t = 0;
 let lastTitle = '';
 let uiAcc = 0;
 
-function loop() {
-  const now = performance.now();
+function loop(now) {
   const dt = Math.min((now - last) / 1000, 1 / 20);
   frame(dt);
+  // 渲染闸门：有动作时 30fps 连续渲染；完全静止时一帧都不画
+  const continuous = playing || wind || animP || tapeLoc === 'hand' ||
+                     orbit.dragging || (orbit.tween && orbit.tween.active);
+  if (continuous) wake(1);
+  frameGate = Math.max(0, frameGate - 1);
+  if (continuous || frameGate > 0) {
+    if (now - lastRender >= FRAME_MIN) {
+      renderer.render(scene, camera);
+      lastRender = now;
+    }
+  }
   requestAnimationFrame(loop);
 }
 function frame(dt) {
@@ -637,6 +656,7 @@ function frame(dt) {
 
   // 悬浮呼吸（只在手里）
   if (tapeLoc === 'hand' && !animP) {
+    wake(1);
     const bob = reduce ? 0 : Math.sin(t * 0.7) * 0.09;
     cas.root.position.set(HOVER.pos.x, HOVER.pos.y + bob, HOVER.pos.z);
     cas.root.rotation.y = HOVER.rot.y + (reduce ? 0 : Math.sin(t * 0.24) * 0.06);
@@ -651,7 +671,7 @@ function frame(dt) {
   uiAcc += dt;
   if (uiAcc > 0.25) {
     uiAcc = 0;
-    updateLCD();
+    if (updateLCD()) wake(3);
     if (audioOk() && playing && tapeLoc === 'deck') {
       const idx = trackAt(side, audioEl.currentTime);
       if (idx !== lastTrackIdx) {
@@ -672,7 +692,6 @@ function frame(dt) {
     if (emaFrame > 26 && resScale > 0.55) { resScale = Math.max(0.55, resScale - 0.12); onResize(); }
     else if (emaFrame < 15 && resScale < 1) { resScale = Math.min(1, resScale + 0.08); onResize(); }
   }
-  renderer.render(scene, camera);
   requestAnimationFrame(loop);
 }
 

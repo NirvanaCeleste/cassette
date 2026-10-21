@@ -30945,43 +30945,53 @@ void main() {
     return {
       mesh: new Mesh(new PlaneGeometry(6.4, 1.87), mat),
       set(line1, line2, glyph = "") {
-        if (state.line1 === line1 && state.line2 === line2 && state.glyph === glyph) return;
+        if (state.line1 === line1 && state.line2 === line2 && state.glyph === glyph) return false;
         state.line1 = line1;
         state.line2 = line2;
         state.glyph = glyph;
         dirty = true;
         draw();
+        return true;
       }
     };
   }
   function makeVU() {
-    const segs = [];
-    const group = new Group();
-    const geo = new PlaneGeometry(0.3, 0.52);
-    const COL = (i) => i >= 10 ? 16734780 : i >= 8 ? 16761404 : 5365884;
-    for (let ch = 0; ch < 2; ch++) {
-      for (let i = 0; i < 12; i++) {
-        const m = new Mesh(geo, new MeshBasicMaterial({
-          color: COL(i),
-          transparent: true,
-          opacity: 0.06
-        }));
-        m.position.set(-1.9 + i * 0.345, ch === 0 ? 0.34 : -0.34, 1e-3);
-        group.add(m);
-        segs.push({ m, i });
+    const W = 256, H = 96;
+    const c = document.createElement("canvas");
+    c.width = W;
+    c.height = H;
+    const g = c.getContext("2d");
+    const tex2 = new CanvasTexture(c);
+    tex2.colorSpace = SRGBColorSpace;
+    const mesh2 = new Mesh(
+      new PlaneGeometry(4.5, 1.69),
+      new MeshBasicMaterial({ map: tex2, transparent: true })
+    );
+    let lv = [0, 0], acc = 0;
+    function draw() {
+      g.clearRect(0, 0, W, H);
+      const bw = 14, gap = 6, x0 = 8;
+      for (let ch = 0; ch < 2; ch++) {
+        const y = ch === 0 ? 10 : 52;
+        for (let i = 0; i < 12; i++) {
+          const v = clamp2(lv[ch] * 12 - i, 0, 1);
+          g.fillStyle = i >= 10 ? `rgba(255,90,60,${0.14 + v * 0.86})` : i >= 8 ? `rgba(255,194,60,${0.14 + v * 0.86})` : `rgba(81,224,124,${0.14 + v * 0.86})`;
+          g.fillRect(x0 + i * (bw + gap), y, bw, 34);
+        }
       }
+      tex2.needsUpdate = true;
     }
-    let lv = [0, 0];
+    draw();
     return {
-      group,
+      mesh: mesh2,
       set(l, r) {
         lv = [l, r];
       },
       tick(dt) {
-        for (const { m, i } of segs) {
-          const v = lv[m.position.y > 0 ? 0 : 1];
-          const on = clamp2(v * 12 - i, 0, 1);
-          m.material.opacity = 0.06 + on * 0.9;
+        acc += dt;
+        if (acc > 1 / 12) {
+          acc = 0;
+          draw();
         }
       }
     };
@@ -31097,8 +31107,8 @@ void main() {
     lcdGlow.position.set(-5.6, D2.floorY + 4.2, fasciaZ + 0.6);
     root.add(lcdGlow);
     const vu = makeVU();
-    vu.group.position.set(3.9, D2.floorY + 4, fasciaZ);
-    root.add(vu.group);
+    vu.mesh.position.set(3.9, D2.floorY + 4, fasciaZ);
+    root.add(vu.mesh);
     const vuBase = new Mesh(
       new PlaneGeometry(4.6, 1.8),
       new MeshBasicMaterial({ color: 329738 })
@@ -31238,6 +31248,12 @@ void main() {
   var resScale = 1;
   var emaFrame = 16;
   var perfAcc = 0;
+  var frameGate = 0;
+  var lastRender = 0;
+  var FRAME_MIN = 1e3 / 30;
+  function wake(n = 2) {
+    frameGate = Math.max(frameGate, n);
+  }
   var $ = (id) => document.getElementById(id);
   var sfx = {};
   for (const n of ["click", "clack", "open", "stop"]) {
@@ -31331,12 +31347,15 @@ void main() {
     maxPhi: 1.5,
     auto: false,
     reduce,
-    onInteract: (dragging) => document.body.classList.toggle("dragging", dragging)
+    onInteract: (dragging) => {
+      document.body.classList.toggle("dragging", dragging);
+      wake(6);
+    }
   });
   orbit.home = { theta: 0.72, phi: 1.06, radius: 52 };
   var audio = new TapeAudio();
   var audioEl = new Audio(MIXTAPE.sides.A.src);
-  audioEl.preload = "auto";
+  audioEl.preload = "metadata";
   audioEl.volume = 0.9;
   var cas = null;
   var deck = null;
@@ -31476,7 +31495,7 @@ void main() {
     renderer.render(scene, camera);
     hint("\u70B9\u51FB\u78C1\u5E26\u76D2 \xB7 \u6253\u5F00\u76D2\u76D6");
     document.body.classList.add("ready");
-    loop();
+    loop(performance.now());
   }
   var side = "A";
   var tapeLoc = "box";
@@ -31492,6 +31511,7 @@ void main() {
     if (tapeLoc !== "deck" || busy) return;
     if (w === wind) w = null;
     wind = w;
+    wake(6);
     deck.litKey("rew", w === "rew");
     deck.litKey("ff", w === "ff");
     playing = false;
@@ -31522,6 +31542,7 @@ void main() {
     const on = force ?? !playing;
     if (on && wind) setWind(null);
     playing = on;
+    wake(6);
     deck.litKey("play", on);
     if (on) {
       if (audioOk()) {
@@ -31576,6 +31597,7 @@ void main() {
     const frac = audioOk() && side === loadedSide ? clamp2(audioEl.currentTime / audioEl.duration, 0, 1) : cas.st.duration > 0 ? clamp2(cas.st.time / cas.st.duration, 0, 1) : 0;
     side = otherSide(side);
     flipped = side === "B";
+    wake(8);
     cas.setFlip(flipped);
     audio.clunk(0.9);
     lastTrackIdx = -1;
@@ -31614,6 +31636,7 @@ void main() {
   function stepAnim(dt) {
     if (!animP) return;
     animP.p = Math.min(1, animP.p + dt / animP.dur);
+    wake(2);
     const k = EASE(animP.p);
     cas.root.position.lerpVectors(animP.p0, animP.p1, k);
     cas.root.quaternion.slerpQuaternions(animP.q0, animP.q1, k);
@@ -31720,8 +31743,9 @@ void main() {
     const t2 = audioOk() ? audioEl.currentTime : cas.st.time;
     const tr = sd.tracks[trackAt(side, t2)];
     const glyph = wind === "rew" ? "\u25C0\u25C0" : wind === "ff" ? "\u25B6\u25B6" : playing ? "\u25B6" : "\u25A0";
-    deck.lcd.set(`${sd.cn}\xB7${tr[0]} ${tr[1]}`.slice(0, 26), `${fmt(t2)} / ${sd.total}`, glyph);
+    const changed = deck.lcd.set(`${sd.cn}\xB7${tr[0]} ${tr[1]}`.slice(0, 26), `${fmt(t2)} / ${sd.total}`, glyph);
     deck.lcdGlow.intensity = playing || wind ? 3.2 : 1.1;
+    return changed;
   }
   var actx = null;
   var analyser = null;
@@ -31857,10 +31881,18 @@ void main() {
   var t = 0;
   var lastTitle = "";
   var uiAcc = 0;
-  function loop() {
-    const now = performance.now();
+  function loop(now) {
     const dt = Math.min((now - last) / 1e3, 1 / 20);
     frame(dt);
+    const continuous = playing || wind || animP || tapeLoc === "hand" || orbit.dragging || orbit.tween && orbit.tween.active;
+    if (continuous) wake(1);
+    frameGate = Math.max(0, frameGate - 1);
+    if (continuous || frameGate > 0) {
+      if (now - lastRender >= FRAME_MIN) {
+        renderer.render(scene, camera);
+        lastRender = now;
+      }
+    }
     requestAnimationFrame(loop);
   }
   function frame(dt) {
@@ -31886,6 +31918,7 @@ void main() {
       cas.st.playing = false;
     }
     if (tapeLoc === "hand" && !animP) {
+      wake(1);
       const bob = reduce ? 0 : Math.sin(t * 0.7) * 0.09;
       cas.root.position.set(HOVER.pos.x, HOVER.pos.y + bob, HOVER.pos.z);
       cas.root.rotation.y = HOVER.rot.y + (reduce ? 0 : Math.sin(t * 0.24) * 0.06);
@@ -31899,7 +31932,7 @@ void main() {
     uiAcc += dt;
     if (uiAcc > 0.25) {
       uiAcc = 0;
-      updateLCD();
+      if (updateLCD()) wake(3);
       if (audioOk() && playing && tapeLoc === "deck") {
         const idx = trackAt(side, audioEl.currentTime);
         if (idx !== lastTrackIdx) {
@@ -31926,7 +31959,6 @@ void main() {
         onResize();
       }
     }
-    renderer.render(scene, camera);
     requestAnimationFrame(loop);
   }
   function onResize() {

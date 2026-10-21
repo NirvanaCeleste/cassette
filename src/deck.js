@@ -81,39 +81,46 @@ function makeLCD() {
   return {
     mesh: new THREE.Mesh(new THREE.PlaneGeometry(6.4, 1.87), mat),
     set(line1, line2, glyph = '') {
-      if (state.line1 === line1 && state.line2 === line2 && state.glyph === glyph) return;
+      if (state.line1 === line1 && state.line2 === line2 && state.glyph === glyph) return false;
       state.line1 = line1; state.line2 = line2; state.glyph = glyph;
       dirty = true; draw();
+      return true;
     },
   };
 }
 
-/* ---- VU 电平表：2 × 12 段 ---- */
+/* ---- VU 电平表：单块画布平面（1 次绘制调用），12Hz 重绘 ---- */
 function makeVU() {
-  const segs = [];
-  const group = new THREE.Group();
-  const geo = new THREE.PlaneGeometry(0.30, 0.52);
-  const COL = (i) => (i >= 10 ? 0xff5a3c : i >= 8 ? 0xffc23c : 0x51e07c);
-  for (let ch = 0; ch < 2; ch++) {
-    for (let i = 0; i < 12; i++) {
-      const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
-        color: COL(i), transparent: true, opacity: 0.06,
-      }));
-      m.position.set(-1.9 + i * 0.345, ch === 0 ? 0.34 : -0.34, 0.001);
-      group.add(m);
-      segs.push({ m, i });
+  const W = 256, H = 96;
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d');
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(4.5, 1.69),
+    new THREE.MeshBasicMaterial({ map: tex, transparent: true }));
+  let lv = [0, 0], acc = 0;
+  function draw() {
+    g.clearRect(0, 0, W, H);
+    const bw = 14, gap = 6, x0 = 8;
+    for (let ch = 0; ch < 2; ch++) {
+      const y = ch === 0 ? 10 : 52;
+      for (let i = 0; i < 12; i++) {
+        const v = clamp(lv[ch] * 12 - i, 0, 1);
+        g.fillStyle = i >= 10 ? `rgba(255,90,60,${0.14 + v * 0.86})`
+                    : i >= 8 ? `rgba(255,194,60,${0.14 + v * 0.86})`
+                             : `rgba(81,224,124,${0.14 + v * 0.86})`;
+        g.fillRect(x0 + i * (bw + gap), y, bw, 34);
+      }
     }
+    tex.needsUpdate = true;
   }
-  let lv = [0, 0];
+  draw();
   return {
-    group,
+    mesh,
     set(l, r) { lv = [l, r]; },
     tick(dt) {
-      for (const { m, i } of segs) {
-        const v = lv[m.position.y > 0 ? 0 : 1];
-        const on = clamp(v * 12 - i, 0, 1);
-        m.material.opacity = 0.06 + on * 0.9;
-      }
+      acc += dt;
+      if (acc > 1 / 12) { acc = 0; draw(); }
     },
   };
 }
@@ -238,8 +245,8 @@ export function buildDeck() {
 
   // VU
   const vu = makeVU();
-  vu.group.position.set(3.9, D.floorY + 4.0, fasciaZ);
-  root.add(vu.group);
+  vu.mesh.position.set(3.9, D.floorY + 4.0, fasciaZ);
+  root.add(vu.mesh);
   const vuBase = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 1.8),
     new THREE.MeshBasicMaterial({ color: 0x05080a }));
   vuBase.position.set(3.9, D.floorY + 4.0, fasciaZ - 0.01);
