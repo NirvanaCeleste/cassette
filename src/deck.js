@@ -54,7 +54,10 @@ function makeLCD() {
   tex.anisotropy = 8;
   const mat = new THREE.MeshBasicMaterial({ map: tex });
   const state = { line1: 'NO TAPE', line2: '--:-- / --:--', glyph: '' };
+  let dirty = true;
   function draw() {
+    if (!dirty) return;
+    dirty = false;
     g.fillStyle = '#060b07';
     g.fillRect(0, 0, W, H);
     // 扫描线质感
@@ -77,7 +80,11 @@ function makeLCD() {
   draw();
   return {
     mesh: new THREE.Mesh(new THREE.PlaneGeometry(6.4, 1.87), mat),
-    set(line1, line2, glyph = '') { state.line1 = line1; state.line2 = line2; state.glyph = glyph; draw(); },
+    set(line1, line2, glyph = '') {
+      if (state.line1 === line1 && state.line2 === line2 && state.glyph === glyph) return;
+      state.line1 = line1; state.line2 = line2; state.glyph = glyph;
+      dirty = true; draw();
+    },
   };
 }
 

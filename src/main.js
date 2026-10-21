@@ -4,7 +4,6 @@
    磁带建模与卷带物理来自 cassette.js；机械声来自 audio.js。
    ════════════════════════════════════════════════════════════════════ */
 import * as THREE from 'three';
-import { createEnvironments } from './env.js';
 import { createCassette } from './cassette.js';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { Orbit } from './controls.js';
@@ -39,8 +38,6 @@ renderer.setPixelRatio(Math.min(devicePixelRatio || 1, IS_MOBILE ? 1.25 : 1.5));
 renderer.setSize(innerWidth, innerHeight, false);
 renderer.toneMapping = THREE.NeutralToneMapping ?? THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.18;
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFShadowMap;
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(30, innerWidth / innerHeight, 1, 260);
@@ -59,25 +56,11 @@ const backdrop = new THREE.Mesh(
 backdrop.frustumCulled = false;
 scene.add(backdrop);
 
-const envs = createEnvironments(renderer);
-scene.environment = envs.noir;
-
 /* 灯光：主光（投影）+ 轮廓光 + 半球环境 */
-scene.add(new THREE.HemisphereLight(0x9db4d6, 0x0c0d10, 1.2));
-const keyLight = new THREE.DirectionalLight(0xfff1e0, 2.9);
+scene.add(new THREE.AmbientLight(0xcfd6e2, 0.9));
+const keyLight = new THREE.DirectionalLight(0xfff1e0, 1.7);
 keyLight.position.set(9, 16, 12);
-keyLight.castShadow = true;
-keyLight.shadow.mapSize.set(1024, 1024);
-keyLight.shadow.camera.left = -24; keyLight.shadow.camera.right = 24;
-keyLight.shadow.camera.top = 24; keyLight.shadow.camera.bottom = -24;
-keyLight.shadow.camera.near = 2; keyLight.shadow.camera.far = 60;
-keyLight.shadow.bias = -0.0004;
 scene.add(keyLight);
-const rimLight = new THREE.DirectionalLight(0x8fb0ff, 1.1);
-rimLight.position.set(-14, 9, -8);
-scene.add(rimLight);
-renderer.shadowMap.autoUpdate = false;
-renderer.shadowMap.needsUpdate = true;
 
 /* 台面：静态渐变圆盘 */
 {
@@ -90,10 +73,9 @@ renderer.shadowMap.needsUpdate = true;
   tex.colorSpace = THREE.SRGBColorSpace;
   const floor = new THREE.Mesh(
     new THREE.CircleGeometry(70, 48).rotateX(-Math.PI / 2),
-    new THREE.MeshStandardMaterial({ map: tex, roughness: 0.95, metalness: 0 })
+    new THREE.MeshBasicMaterial({ map: tex })
   );
   floor.position.y = -1.62;
-  floor.receiveShadow = true;
   scene.add(floor);
 }
 
@@ -182,14 +164,14 @@ function buildBox(coverImg) {
   // 盖：铰链在后缘，向后上翻开；内侧印封面
   const lid = new THREE.Group();
   const lidSlab = new THREE.Mesh(new RoundedBoxGeometry(W, 0.42, D, 3, 0.18),
-    new THREE.MeshStandardMaterial({ color: 0x2b2e36, roughness: 0.4, metalness: 0.45 }));
+    new THREE.MeshLambertMaterial({ color: 0x33373f }));
   lidSlab.position.set(0, 0.21, D / 2 - 0.21);
   // 封面印刷在盖子外表面（朝上，合盖时正对镜头）
   const jtexLid = new THREE.CanvasTexture(jcardCanvas);
   jtexLid.colorSpace = THREE.SRGBColorSpace;
   jtexLid.anisotropy = 8;
   const art = new THREE.Mesh(new THREE.PlaneGeometry(W - 1.4, D - 1.4).rotateX(-Math.PI / 2),
-    new THREE.MeshStandardMaterial({ map: jtexLid, roughness: 0.8 }));
+    new THREE.MeshLambertMaterial({ map: jtexLid }));
   art.rotation.y = Math.PI;                      // 翻转使图案朝向镜头正向
   art.position.set(0, 0.435, D / 2 - 0.21);
   lid.add(lidSlab, art);
@@ -209,28 +191,42 @@ function buildBox(coverImg) {
   };
 }
 
+/* 材质降级：Standard/Physical → Lambert（无 PBR、无环境采样、无阴影） */
+function cheapify(root) {
+  root.traverse((o) => {
+    if (!o.isMesh || !o.material || o.material.isMeshBasicMaterial || o.material.isMeshLambertMaterial) return;
+    const m = o.material;
+    o.material = new THREE.MeshLambertMaterial({
+      color: m.color ? m.color.clone() : new THREE.Color(0xffffff),
+      map: m.map || null,
+      transparent: !!m.transparent,
+      opacity: m.opacity ?? 1,
+      side: m.side,
+    });
+  });
+}
+
 /* ═══════════════ 启动 ═══════════════ */
 async function boot() {
   const coverImg = await ART_READY;
 
   deck = buildDeck();
-  deck.root.traverse((o) => { if (o.isMesh) o.receiveShadow = true; });
+  cheapify(deck.root);
   scene.add(deck.root);
 
   tapeBox = buildBox(coverImg);
-  tapeBox.root.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+  cheapify(tapeBox.root);
   scene.add(tapeBox.root);
 
   cas = createCassette({ title: MIXTAPE.title, artist: MIXTAPE.no, album: `${MIXTAPE.year} · 限量 1 张`, minutes: '60' });
   cas.st.onEnd = endOfSide;
   placeAt(cas.root, BOX_TAPE_POSE);
-  cas.root.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+  cheapify(cas.root);
   scene.add(cas.root);
 
   audioEl.addEventListener('loadedmetadata', () => { if (audioOk()) cas.st.duration = audioEl.duration; });
   audioEl.addEventListener('ended', endOfSide);
 
-  renderer.shadowMap.needsUpdate = true;
   onResize();
   addEventListener('resize', onResize);
   bindPointer();
@@ -382,7 +378,6 @@ function stepAnim(dt) {
   const k = EASE(animP.p);
   cas.root.position.lerpVectors(animP.p0, animP.p1, k);
   cas.root.quaternion.slerpQuaternions(animP.q0, animP.q1, k);
-  renderer.shadowMap.needsUpdate = true;
   if (animP.doorSeq === 'in') {
     if (animP.p > .3 && !animP.d1) { animP.d1 = true; deck.door.set(true); }
     if (animP.p > .78 && !animP.d2) { animP.d2 = true; deck.door.set(false); }
@@ -393,7 +388,6 @@ function stepAnim(dt) {
   if (animP.p >= 1) {
     const cb = animP.after;
     busy = false; animP = null;
-    renderer.shadowMap.needsUpdate = true;
     if (cb) cb();
   }
 }
@@ -684,7 +678,7 @@ function frame(dt) {
 
 function onResize() {
   const w = innerWidth, h = innerHeight;
-  const dpr = Math.min(devicePixelRatio || 1, IS_MOBILE ? 1.25 : 1.5) * resScale;
+  const dpr = Math.min(devicePixelRatio || 1, IS_MOBILE ? 1.0 : 1.5) * resScale;
   camera.aspect = w / h;
   renderer.setPixelRatio(dpr);
   renderer.setSize(w, h, false);
