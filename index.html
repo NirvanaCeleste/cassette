@@ -19,38 +19,43 @@
     background-image:radial-gradient(ellipse 80% 60% at 50% 115%,#121217 0%,transparent 60%);
     overflow-x:hidden;
   }
-  h1{font-weight:300;font-size:12px;letter-spacing:.34em;color:var(--faint);text-align:center;margin-bottom:14px}
+  h1{font-weight:300;font-size:12px;letter-spacing:.34em;color:var(--faint);text-align:center;margin-bottom:30px}
   h1 b{font-weight:600;color:var(--ink)}
 
   /* ═══════ 场景：盒子在左，卡座在右，磁带在里面飞 ═══════ */
   .scene{position:relative;width:min(960px,96vw);height:340px;margin-bottom:18px}
 
   /* ── 磁带盒 ── */
-  .box{position:absolute;left:0;top:36px;width:330px;height:236px;perspective:900px;cursor:pointer}
+  .box{position:absolute;left:0;top:44px;width:344px;height:248px;cursor:pointer}
   .box-back{position:absolute;inset:0;border-radius:12px;
     background:linear-gradient(160deg,#1a1b1f,#0d0e10 70%);
     box-shadow:inset 0 0 0 1px #2a2a30, inset 0 0 40px rgba(0,0,0,.7), 0 16px 40px rgba(0,0,0,.55);
     overflow:hidden}
-  .box-print{position:absolute;inset:10px;border-radius:8px;overflow:hidden;
-    background:#050505 url("assets/cover.png") no-repeat center 18%/88% auto;opacity:.92}
-  .box-print::after{content:"苍穹耳语无限无垠";position:absolute;left:10px;bottom:8px;
+  .box-print{position:absolute;inset:10px;border-radius:8px;overflow:hidden;background:#000}
+  .box-art{position:absolute;inset:0;
+    background:url("assets/cover.png") no-repeat center bottom/contain;
+    filter:brightness(1.9) saturate(1.05)}
+  .box-print::after{content:"苍穹耳语无限无垠";position:absolute;left:12px;bottom:10px;
     writing-mode:vertical-rl;font-family:"Microsoft YaHei",serif;font-weight:600;
-    font-size:15px;letter-spacing:.34em;color:#e8e8e8;text-shadow:0 0 12px #000}
-  .box-print::before{content:"MIXTAPE NO.001 · 2026";position:absolute;right:8px;top:8px;
-    font-size:9px;letter-spacing:.24em;color:#bdbdbd;text-shadow:0 0 8px #000}
+    font-size:16px;letter-spacing:.34em;color:#f2f2f2;text-shadow:0 0 14px #000, 0 0 4px #000}
+  .box-print::before{content:"MIXTAPE NO.001 · 2026";position:absolute;right:10px;top:10px;
+    font-size:9px;letter-spacing:.24em;color:#e0e0e0;text-shadow:0 0 8px #000;z-index:2}
   /* 盒内放磁带的凹槽 */
   .box-slot{position:absolute;left:36px;top:96px;width:250px;height:60px;border-radius:8px;
     background:#08090b;box-shadow:inset 0 3px 10px rgba(0,0,0,.9)}
   /* 透明塑盖：铰链在左缘 */
-  .lid{position:absolute;inset:0;transform-origin:left center;transform-style:preserve-3d;
+  .lid{position:absolute;inset:0;z-index:7;transform-origin:left center;
     transition:transform .9s cubic-bezier(.55,.05,.35,1);
     border-radius:12px;
-    background:linear-gradient(155deg,rgba(190,205,220,.16),rgba(120,140,160,.05) 55%,rgba(190,205,220,.11));
-    box-shadow:inset 0 0 0 1px rgba(210,225,240,.28), inset 0 0 26px rgba(160,190,220,.08)}
+    transform:perspective(900px) rotateY(0deg);
+    background:linear-gradient(155deg,rgba(200,216,232,.22),rgba(120,140,160,.07) 55%,rgba(200,216,232,.16));
+    box-shadow:inset 0 0 0 1px rgba(215,230,245,.34), inset 0 0 30px rgba(170,200,230,.10)}
   .lid::after{content:"";position:absolute;left:8%;top:10%;width:70%;height:34%;
-    background:linear-gradient(105deg,rgba(255,255,255,.14),transparent 70%);
+    background:linear-gradient(105deg,rgba(255,255,255,.20),transparent 70%);
     border-radius:8px;transform:skewX(-16deg)}
-  .box.open .lid{transform:rotateY(-118deg)}
+  .lid::before{content:"SIDE A · 草地与纸飞机";position:absolute;right:10px;bottom:8px;
+    font-size:9px;letter-spacing:.2em;color:rgba(240,248,255,.75);text-shadow:0 0 6px rgba(0,0,0,.6)}
+  .box.open .lid{transform:perspective(900px) rotateY(-118deg)}
   .box-tag{position:absolute;left:10px;top:-24px;font-size:10px;letter-spacing:.26em;color:var(--faint)}
 
   /* ── 卡座 ── */
@@ -136,6 +141,7 @@
   @media (max-width:920px){
     .scene{height:auto;display:flex;flex-direction:column;align-items:center;gap:22px}
     .box,.deck{position:relative;left:auto;right:auto;top:auto}
+    .tape{position:absolute}
     .box{width:min(330px,88vw);height:220px}
     .deck{width:min(440px,92vw);height:auto}
     .tape{position:fixed;z-index:8}
@@ -150,7 +156,7 @@
   <div class="box" id="box">
     <div class="box-tag">磁带盒 / CASE</div>
     <div class="box-back">
-      <div class="box-print"></div>
+      <div class="box-print"><div class="box-art"></div></div>
       <div class="box-slot"></div>
     </div>
     <div class="lid" id="lid"></div>
@@ -283,8 +289,7 @@ $('box').addEventListener('click', () => {
   boxOpen = !boxOpen;
   $('box').classList.toggle('open', boxOpen);
   play(boxOpen ? 'open' : 'clack');
-  if (boxOpen) { tapeEl.classList.remove('hidden'); placeNow('box', .8); hint('点击磁带 · 取出磁带'); }
-  else if (!tapeOut) tapeEl.classList.add('hidden');
+  if (boxOpen) { placeNow('box', .8); hint('点击磁带 · 取出磁带'); }
   else hint('点击磁带盒 · 打开盒盖');
 });
 
@@ -525,7 +530,6 @@ setInterval(() => {
 setTape(0);
 buildTicks();
 updateLCD();
-tapeEl.classList.add('hidden');
 requestAnimationFrame(() => placeNow('box', .8));
 </script>
 </body>
