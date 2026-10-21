@@ -31487,6 +31487,7 @@ void main() {
       if (audioOk()) cas.st.duration = audioEl.duration;
     });
     audioEl.addEventListener("ended", endOfSide);
+    buildPickTargets();
     onResize();
     addEventListener("resize", onResize);
     bindPointer();
@@ -31782,42 +31783,29 @@ void main() {
   }
   var ray = new Raycaster();
   var ndc = new Vector2();
+  var pickTargets = [];
   var downAt = null;
+  var lastMovePick = 0;
+  function buildPickTargets() {
+    const mk = (parent, w, h, d, kind, id) => {
+      const m = new Mesh(
+        new BoxGeometry(w, h, d),
+        new MeshBasicMaterial({ visible: false })
+      );
+      m.userData.pick = { kind, id };
+      parent.add(m);
+      pickTargets.push(m);
+    };
+    mk(cas.root, 10.4, 6.6, 1.5, "tape");
+    mk(tapeBox.root, BOX.W, BOX.H, BOX.D, "box");
+    mk(deck.root, 26, 6, 17, "deck");
+    for (const k of deck.keyMeshes) mk(k.grp, 2.3, 1.6, 1, "key", k.id);
+  }
   function raycastAt(cx, cy) {
     ndc.set(cx / innerWidth * 2 - 1, -(cy / innerHeight) * 2 + 1);
     ray.setFromCamera(ndc, camera);
-    const targets = [];
-    if (cas && tapeLoc !== "deck" && !animP) targets.push(cas.assembly);
-    if (tapeBox && tapeLoc === "box") targets.push(tapeBox.root);
-    if (deck) {
-      for (const k of deck.keyMeshes) targets.push(k.mesh);
-      if (tapeLoc === "hand" && !animP) targets.push(deck.root);
-    }
-    const hits = ray.intersectObjects(targets, true);
-    if (!hits.length) return null;
-    const o = hits[0].object;
-    for (const k of deck.keyMeshes) {
-      let p = o;
-      while (p) {
-        if (p === k.mesh) return { kind: "key", id: k.id };
-        p = p.parent;
-      }
-    }
-    {
-      let p = o;
-      while (p) {
-        if (p === cas.assembly) return { kind: "tape" };
-        p = p.parent;
-      }
-    }
-    {
-      let p = o;
-      while (p) {
-        if (p === tapeBox.root) return { kind: "box" };
-        p = p.parent;
-      }
-    }
-    return { kind: "deck" };
+    const hits = ray.intersectObjects(pickTargets, false);
+    return hits.length ? hits[0].object.userData.pick : null;
   }
   function bindPointer() {
     canvas2.addEventListener("pointerdown", (e) => {
@@ -31832,6 +31820,9 @@ void main() {
       pick(e.clientX, e.clientY);
     });
     canvas2.addEventListener("pointermove", (e) => {
+      const now = performance.now();
+      if (now - lastMovePick < 100) return;
+      lastMovePick = now;
       canvas2.style.cursor = raycastAt(e.clientX, e.clientY) ? "pointer" : "";
     });
   }

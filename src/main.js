@@ -231,6 +231,7 @@ async function boot() {
   audioEl.addEventListener('loadedmetadata', () => { if (audioOk()) cas.st.duration = audioEl.duration; });
   audioEl.addEventListener('ended', endOfSide);
 
+  buildPickTargets();
   onResize();
   addEventListener('resize', onResize);
   bindPointer();
@@ -523,37 +524,32 @@ function tickVU() {
   deck.vu.set(vuLevel[0], vuLevel[1]);
 }
 
-/* ═══════════════ 指针交互 ═══════════════ */
+/* ═══════════════ 指针交互 ═══════════════
+   拾取用隐形低模代理体（十几个三角形），绝不对 5 万面的真模型做射线检测 */
 const ray = new THREE.Raycaster();
 const ndc = new THREE.Vector2();
-let downAt = null;
+const pickTargets = [];
+let downAt = null, lastMovePick = 0;
+
+function buildPickTargets() {
+  const mk = (parent, w, h, d, kind, id) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d),
+      new THREE.MeshBasicMaterial({ visible: false }));
+    m.userData.pick = { kind, id };
+    parent.add(m);
+    pickTargets.push(m);
+  };
+  mk(cas.root, 10.4, 6.6, 1.5, 'tape');
+  mk(tapeBox.root, BOX.W, BOX.H, BOX.D, 'box');
+  mk(deck.root, 26, 6, 17, 'deck');
+  for (const k of deck.keyMeshes) mk(k.grp, 2.3, 1.6, 1.0, 'key', k.id);
+}
 
 function raycastAt(cx, cy) {
   ndc.set((cx / innerWidth) * 2 - 1, -(cy / innerHeight) * 2 + 1);
   ray.setFromCamera(ndc, camera);
-  const targets = [];
-  if (cas && tapeLoc !== 'deck' && !animP) targets.push(cas.assembly);
-  if (tapeBox && tapeLoc === 'box') targets.push(tapeBox.root);
-  if (deck) {
-    for (const k of deck.keyMeshes) targets.push(k.mesh);
-    if (tapeLoc === 'hand' && !animP) targets.push(deck.root);
-  }
-  const hits = ray.intersectObjects(targets, true);
-  if (!hits.length) return null;
-  const o = hits[0].object;
-  for (const k of deck.keyMeshes) {
-    let p = o;
-    while (p) { if (p === k.mesh) return { kind: 'key', id: k.id }; p = p.parent; }
-  }
-  {
-    let p = o;
-    while (p) { if (p === cas.assembly) return { kind: 'tape' }; p = p.parent; }
-  }
-  {
-    let p = o;
-    while (p) { if (p === tapeBox.root) return { kind: 'box' }; p = p.parent; }
-  }
-  return { kind: 'deck' };
+  const hits = ray.intersectObjects(pickTargets, false);
+  return hits.length ? hits[0].object.userData.pick : null;
 }
 
 function bindPointer() {
@@ -567,6 +563,9 @@ function bindPointer() {
     pick(e.clientX, e.clientY);
   });
   canvas.addEventListener('pointermove', (e) => {
+    const now = performance.now();
+    if (now - lastMovePick < 100) return;          // 移动拾取节流 10Hz
+    lastMovePick = now;
     canvas.style.cursor = raycastAt(e.clientX, e.clientY) ? 'pointer' : '';
   });
 }
