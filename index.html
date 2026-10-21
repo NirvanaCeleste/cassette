@@ -1,30 +1,336 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>苍穹耳语无限无垠 — MIXTAPE NO.001</title>
-<link rel="stylesheet" href="styles.css">
+<style>
+  :root{
+    --bg:#070708; --panel:#111114; --line:#26262b;
+    --ink:#e6e6e6; --dim:#9a9a9a; --faint:#5a5a5a;
+    --pink:#e8336d;
+    --rainbow:linear-gradient(90deg,#e8336d 0 16.6%,#e8702d 16.6% 33.2%,#f0c029 33.2% 49.8%,#2db8a8 49.8% 66.4%,#3b6fd4 66.4% 83%,#7a4fd4 83% 100%);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{min-height:100vh;background:var(--bg);color:var(--ink);
+    font:300 15px/1.5 "Bahnschrift","Segoe UI","Microsoft YaHei",sans-serif;overflow-x:hidden}
+  #gl{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;transition:opacity .7s ease}
+  body.playing2d #gl{opacity:0;pointer-events:none}
+
+  /* 3D 层提示 */
+  #s3dHint{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);
+    font-size:10.5px;letter-spacing:.24em;color:#565c66;white-space:nowrap;z-index:5;transition:opacity .4s}
+  body.playing2d #s3dHint{opacity:0}
+
+  /* ═══ 2D 播放层：插入磁带后淡入接管 ═══ */
+  #player2d{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;padding:18px;
+    opacity:0;pointer-events:none;transition:opacity .7s ease;
+    background-image:radial-gradient(ellipse 80% 60% at 50% 115%,#121217 0%,transparent 60%)}
+  body.playing2d #player2d{opacity:1;pointer-events:auto}
+  h1{font-weight:300;font-size:12px;letter-spacing:.34em;color:var(--faint);text-align:center;margin-bottom:18px}
+  h1 b{font-weight:600;color:var(--ink)}
+  .deck{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px 16px;
+    width:min(680px,94vw);
+    box-shadow:0 24px 60px rgba(0,0,0,.6)}
+  .lcd{background:#060b07;border:1px solid #1d2b22;border-radius:8px;padding:10px 16px;margin-bottom:14px;
+    display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .lcd .l1{font:600 15px Consolas,monospace;color:#9dffb8;letter-spacing:.08em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lcd .l2{font:300 15px Consolas,monospace;color:#7ddc9d;letter-spacing:.06em;white-space:nowrap}
+  .lcd .glyph{font-size:17px;min-width:34px;text-align:right}
+  .bar{position:relative;height:6px;background:#1b1b1f;border-radius:3px;cursor:pointer;margin-bottom:6px}
+  .bar .fill{position:absolute;inset:0 auto 0 0;width:0%;background:var(--rainbow);border-radius:3px}
+  .bar .ticks{position:absolute;inset:0;pointer-events:none}
+  .bar .ticks i{position:absolute;top:-3px;bottom:-3px;width:1px;background:#3a3a40}
+  .times{display:flex;justify-content:space-between;font:300 11px Consolas,monospace;color:var(--faint);letter-spacing:.12em;margin-bottom:14px}
+  .keys{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;align-items:stretch}
+  button{font:inherit;color:var(--ink);background:#17171a;border:1px solid var(--line);border-radius:10px;
+    cursor:pointer;transition:transform .06s,border-color .15s,background .15s;user-select:none}
+  button:active{transform:translateY(2px)}
+  .key{min-width:64px;padding:10px 14px;display:flex;flex-direction:column;align-items:center;gap:3px}
+  .key .g{font-size:17px;line-height:1}
+  .key .t{font-size:10px;letter-spacing:.22em;color:var(--dim)}
+  .key.on{border-color:var(--pink);background:#1d1418;box-shadow:0 0 14px rgba(232,51,109,.25)}
+  .key.on .t{color:var(--pink)}
+  .key:disabled{opacity:.35;cursor:not-allowed}
+  .vol{display:flex;align-items:center;gap:10px;justify-content:center;margin-top:14px;color:var(--faint);font-size:11px;letter-spacing:.2em}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:180px;height:4px;background:#2a2a2f;border-radius:2px;outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#ddd;cursor:pointer}
+
+  .trkpop{position:fixed;right:28px;bottom:24px;display:flex;gap:10px;align-items:baseline;
+    font-size:13px;letter-spacing:.15em;color:#b9bec6;opacity:0;transform:translateY(6px);
+    transition:opacity 1.3s ease,transform 1.3s ease;pointer-events:none;text-shadow:0 1px 8px rgba(0,0,0,.8);z-index:30}
+  .trkpop.show{opacity:.62;transform:none}
+  .trkpop .tp-side{font-size:10px;font-weight:600;letter-spacing:.3em;color:#8a919b}
+  .trkpop .tp-no{font-size:10px;color:#6d747e}
+  .hint{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);
+    font-size:10.5px;letter-spacing:.24em;color:#565c66;white-space:nowrap;z-index:30}
+  .mode-link{position:fixed;top:14px;right:18px;font-size:10.5px;letter-spacing:.18em;
+    color:#6d747e;text-decoration:none;border:1px solid #2c2c32;border-radius:99px;padding:5px 12px;z-index:30}
+  .mode-link:hover{color:#c8cdd4;border-color:#4a4a52}
+
+  .veil{position:fixed;inset:0;background:#070708;z-index:40;display:flex;flex-direction:column;
+    gap:14px;align-items:center;justify-content:center;pointer-events:none;transition:opacity 1.2s ease}
+  .veil-mark{font:700 28px/1 "Bahnschrift","Segoe UI",sans-serif;letter-spacing:.12em;color:#b9bfc7}
+  .veil-mark b{font-weight:300;color:#6d747e}
+  .veil-lbl{font-size:11px;letter-spacing:.28em;color:#565c66;animation:vp 1.6s ease-in-out infinite}
+  @keyframes vp{0%,100%{opacity:.35}50%{opacity:.9}}
+  body.ready .veil{opacity:0}
+</style>
 </head>
 <body>
+<!-- 3D 展示层：磁带盒 + 磁带 + 卡座（仅开盒/取带/放入时渲染） -->
 <canvas id="gl"></canvas>
 
-<!-- 右下角：顺序走到一首歌时，浮出浅浅的一行小字 -->
-<div class="trkpop" id="trkpop" aria-hidden="true">
-  <span class="tp-side" id="tp-side">SIDE A</span>
-  <span class="tp-no" id="tp-no">01</span>
-  <span class="tp-name" id="tp-name">—</span>
+<!-- 2D 播放层：磁带插入后淡入接管，播放期间零 3D 开销 -->
+<div id="player2d">
+  <h1><b>苍穹耳语无限无垠</b> · MIXTAPE NO.001 · 2026 · 限量 1 张</h1>
+  <div class="deck">
+    <div class="lcd">
+      <span class="l1" id="lcd1">STANDBY</span>
+      <span class="l2"><span id="lcd2">00:00 / 28:46</span>&nbsp;&nbsp;<span class="glyph" id="lcdg">■</span></span>
+    </div>
+    <div class="bar" id="bar">
+      <div class="fill" id="fill"></div>
+      <div class="ticks" id="ticks"></div>
+    </div>
+    <div class="times"><span id="tCur">00:00</span><span id="tTot">28:46</span></div>
+    <div class="keys">
+      <button class="key" id="bRew" disabled><span class="g">◀◀</span><span class="t">倒带</span></button>
+      <button class="key" id="bPlay" disabled><span class="g">▶</span><span class="t">播放</span></button>
+      <button class="key" id="bFf" disabled><span class="g">▶▶</span><span class="t">快进</span></button>
+      <button class="key" id="bStop" disabled><span class="g">■</span><span class="t">停止</span></button>
+      <button class="key" id="bEject" disabled><span class="g">⏏</span><span class="t">弹出</span></button>
+    </div>
+    <div class="vol">VOLUME<input type="range" id="vol" min="0" max="100" value="90"></div>
+  </div>
 </div>
 
-<!-- 左下角：一行浅浅的操作提示 -->
+<div class="trkpop" id="trkpop">
+  <span class="tp-side" id="tpSide">SIDE A</span>
+  <span class="tp-no" id="tpNo">01</span>
+  <span id="tpName">—</span>
+</div>
 <div class="hint" id="hint"></div>
+<a class="mode-link" href="mvp.html">纯平面版 →</a>
 
-<div class="veil" id="veil"><span class="veil-mark">OHM<b>TAPE</b></span><span class="veil-lbl">正在装载磁带 · 首次加载需要编译着色器，请稍候</span></div>
+<div class="veil" id="veil"><span class="veil-mark">OHM<b>TAPE</b></span><span class="veil-lbl">正在装载磁带</span></div>
+
 <script>
 window.__errs = [];
-addEventListener('error', e => window.__errs.push((e.message||'') + ' @ ' + (e.filename||'') + ':' + (e.lineno||'')));
-addEventListener('unhandledrejection', e => window.__errs.push('REJ: ' + ((e.reason && e.reason.stack) || e.reason)));
+addEventListener('error', e => window.__errs.push((e.message||'') + ' @ ' + (e.filename||'').split('/').pop() + ':' + (e.lineno||'')));
+addEventListener('unhandledrejection', e => window.__errs.push('REJ: ' + ((e.reason && e.reason.stack) || e.reason).split('\n').slice(0,3).join('|')));
 </script>
-<script src="dist/app.js?v=3dr"></script>
+<script src="dist/scene3d.js?v=4"></script>
+<script>
+/* ════════════ 2D 播放层：完整走带（与 3D 共用音频） ════════════ */
+const SIDES = {
+  A: { cn:'SIDE A', total:'28:46', approx:1739.9, src:'assets/A%20side.mp3',
+       starts:[16.5, 250.5, 414.3, 628.7, 866.5, 1163.4, 1447.8],
+       tracks:[['01','Floating in Space','3:54'],['02','Far','2:59'],['03','Baby Blue','3:34'],
+               ['04','Creep','3:55'],['05','The Great Gig in the Sky','4:44'],
+               ['06','My Time (lofi)','4:49'],['07','Obstacles','4:51']] },
+  B: { cn:'SIDE B', total:'27:00', approx:1676.8, src:'assets/B%20side.mp3',
+       starts:[0, 209.5, 558.5, 891.0, 1165.2, 1385.3],
+       tracks:[['08','Timber Hearth','3:24'],['09','Weird Fishes','5:16'],['10','Blind Spots','5:26'],
+               ['11','Never Meant','4:26'],['12','Field of Hopes and Dreams','3:35'],
+               ['13','Skies Forever Blue','4:53']] },
+};
+const other = s => s === 'A' ? 'B' : 'A';
+const trackAt = (s, t) => { const st = SIDES[s].starts; let i = 0; for (let k = 0; k < st.length; k++) if (t >= st[k] - .4) i = k; return i; };
+const fmt = s => `${String(Math.floor(s/60)).padStart(2,'0')}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+const clamp = (v,a,b) => Math.min(b, Math.max(a, v));
+const $ = id => document.getElementById(id);
+
+const audio = new Audio(SIDES.A.src);
+audio.preload = 'metadata';
+audio.volume = .9;
+const dur = () => { const d = audio.duration; return (isFinite(d) && d > 0) ? d : SIDES[side].approx; };
+
+let side = 'A', playing = false, wind = null, lastTrk = -1, inserted = false;
+const REW_SECONDS = 8.5;
+
+/* 音效 */
+const sfx = {};
+for (const n of ['click','clack','open','stop']) { const a = new Audio(`assets/sfx/${n}.wav`); sfx[n] = a; }
+const playS = n => { try { const a = sfx[n].cloneNode(); a.volume = .75; a.play().catch(()=>{}); } catch {} };
+const tickS = () => playS('click'), clackS = () => playS('clack');
+
+/* ════════════ 走带 ════════════ */
+function stopWind() {
+  if (!wind) return;
+  wind = null;
+  $('bRew').classList.remove('on'); $('bFf').classList.remove('on');
+  spin2d(false, false);
+}
+function togglePlay() {
+  if (!inserted) return;
+  if (wind) stopWind();
+  playing = !playing;
+  $('bPlay').classList.toggle('on', playing);
+  $('bPlay').querySelector('.t').textContent = playing ? '暂停' : '播放';
+  if (playing) {
+    if (audio.ended || audio.currentTime > audio.duration - .08) audio.currentTime = 0;
+    audio.play().catch(()=>{});
+    tickS();
+  } else { audio.pause(); playS('stop'); }
+  updateLCD();
+}
+function stopAll() {
+  if (wind) stopWind();
+  playing = false;
+  $('bPlay').classList.remove('on');
+  $('bPlay').querySelector('.t').textContent = '播放';
+  audio.pause(); playS('stop');
+  updateLCD();
+}
+function setWind(w) {
+  if (w === wind) w = null;
+  wind = w; playing = false;
+  $('bPlay').classList.remove('on');
+  $('bPlay').querySelector('.t').textContent = '播放';
+  audio.pause();
+  $('bRew').classList.toggle('on', w === 'rew');
+  $('bFf').classList.toggle('on', w === 'ff');
+  tickS();
+}
+function endOfSide() {
+  playing = false;
+  $('bPlay').classList.remove('on');
+  $('bPlay').querySelector('.t').textContent = '播放';
+  audio.pause();
+  wind = 'rew';
+  $('bRew').classList.add('on');
+  updateLCD();
+}
+let lastTs = performance.now();
+function windLoop(ts) {
+  const dt = Math.min((ts - lastTs) / 1000, .05); lastTs = ts;
+  if (wind && inserted) {
+    const step = (dur() / REW_SECONDS) * dt;
+    if (wind === 'rew') {
+      audio.currentTime = Math.max(0, audio.currentTime - step);
+      if (audio.currentTime <= 0) { stopWind(); updateLCD(); }
+    } else {
+      audio.currentTime = Math.min(dur(), audio.currentTime + step);
+      if (audio.currentTime >= dur() - .05) endOfSide();
+    }
+    updateLCD();
+  }
+  requestAnimationFrame(windLoop);
+}
+requestAnimationFrame(windLoop);
+audio.addEventListener('ended', endOfSide);
+audio.addEventListener('loadedmetadata', () => { buildTicks(); updateLCD(); });
+
+/* ════════════ 读数与曲目 ════════════ */
+function updateLCD() {
+  const sd = SIDES[side], t = audio.currentTime || 0;
+  const tr = sd.tracks[trackAt(side, t)];
+  $('lcd1').textContent = inserted ? `${sd.cn} · ${tr[0]} ${tr[1]}` : 'NO TAPE';
+  $('lcd2').textContent = `${fmt(t)} / ${sd.total}`;
+  $('lcdg').textContent = wind === 'rew' ? '◀◀' : wind === 'ff' ? '▶▶' : playing ? '▶' : '■';
+  $('tCur').textContent = fmt(t);
+  $('tTot').textContent = sd.total;
+  $('fill').style.width = (clamp(t / dur(), 0, 1) * 100).toFixed(2) + '%';
+}
+function buildTicks() {
+  const d = dur() || 1;
+  $('ticks').innerHTML = SIDES[side].starts.slice(1).map(t0 =>
+    `<i style="left:${(t0/d*100).toFixed(2)}%"></i>`).join('');
+}
+let popTimer = 0;
+function announce(sd, tr) {
+  $('tpSide').textContent = sd.cn;
+  $('tpNo').textContent = tr[0];
+  $('tpName').textContent = tr[1];
+  $('trkpop').classList.add('show');
+  clearTimeout(popTimer);
+  popTimer = setTimeout(() => $('trkpop').classList.remove('show'), 6500);
+}
+let hintTimer = 0;
+function hint(text) {
+  $('hint').textContent = text;
+  $('hint').style.opacity = '.9';
+  clearTimeout(hintTimer);
+  hintTimer = setTimeout(() => $('hint').style.opacity = '.35', 9000);
+}
+
+/* ════════════ 与 3D 层的交接 ════════════ */
+function enter2d() {
+  inserted = true;
+  document.body.classList.add('playing2d');
+  setKeys(true);
+  lastTrk = -1;
+  buildTicks(); updateLCD();
+  hint('SPACE 播放 · R 倒带 · T 快进 · S 停止 · ⏏ 弹出');
+}
+function exit2d() {
+  inserted = false;
+  stopAll();
+  document.body.classList.remove('playing2d');
+  setKeys(false);
+  updateLCD();
+}
+addEventListener('hybrid:inserted', () => enter2d());
+addEventListener('hybrid:flipped', e => {
+  const frac = dur() ? clamp(audio.currentTime / dur(), 0, 1) : 0;
+  side = e.detail.sideB ? 'B' : 'A';
+  audio.src = SIDES[side].src; audio.load();
+  audio.addEventListener('loadedmetadata', () => {
+    if (isFinite(audio.duration) && audio.duration > 0) {
+      const at = audio.duration * (1 - frac);          // 镜像位置
+      audio.currentTime = at;
+    }
+    buildTicks(); updateLCD();
+  }, { once: true });
+});
+$('bEject').addEventListener('click', () => {
+  tickS();
+  exit2d();
+  Hybrid3D.ejectTo3D();                                // 3D：门开、磁带飞回悬浮
+});
+
+/* ════════════ 按键 ════════════ */
+$('bPlay').addEventListener('click', () => { tickS(); togglePlay(); });
+$('bStop').addEventListener('click', () => { tickS(); stopAll(); });
+$('bRew').addEventListener('click', () => { tickS(); setWind(wind === 'rew' ? null : 'rew'); });
+$('bFf').addEventListener('click', () => { tickS(); setWind(wind === 'ff' ? null : 'ff'); });
+$('vol').addEventListener('input', e => audio.volume = e.target.value / 100);
+$('bar').addEventListener('click', e => {
+  const r = e.currentTarget.getBoundingClientRect();
+  if (dur()) audio.currentTime = clamp((e.clientX - r.left) / r.width, 0, 1) * dur();
+  updateLCD();
+});
+addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const k = e.key.toLowerCase();
+  if (k === ' ' && inserted) { e.preventDefault(); togglePlay(); }
+  else if (k === 'r' && inserted) setWind(wind === 'rew' ? null : 'rew');
+  else if (k === 't' && inserted) setWind(wind === 'ff' ? null : 'ff');
+  else if (k === 's') stopAll();
+  else if (k === 'e' && inserted) { tickS(); exit2d(); Hybrid3D.ejectTo3D(); }
+  else if (k === 'f' && !inserted && Hybrid3D.tapeOut) Hybrid3D.flip();
+});
+function setKeys(on) {
+  for (const id of ['bPlay','bStop','bRew','bFf','bEject']) $(id).disabled = !on;
+}
+
+/* ════════════ 节拍器 ════════════ */
+setInterval(() => {
+  updateLCD();
+  if (inserted && playing && isFinite(audio.duration)) {
+    const idx = trackAt(side, audio.currentTime);
+    if (idx !== lastTrk) {
+      lastTrk = idx;
+      announce(SIDES[side], SIDES[side].tracks[idx]);
+    }
+  }
+}, 250);
+
+buildTicks();
+updateLCD();
+setKeys(false);
+</script>
 </body>
 </html>
