@@ -33337,6 +33337,10 @@ void main() {
   // src/main.js
   var canvas2 = document.getElementById("gl");
   var reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var IS_MOBILE = matchMedia("(pointer: coarse)").matches;
+  var resScale = 1;
+  var emaFrame = 16;
+  var perfAcc = 0;
   var $ = (s) => document.querySelector(s);
   var LABEL_ART_READY = Promise.all([
     new Promise((res) => {
@@ -33352,7 +33356,7 @@ void main() {
       i.src = "assets/label-b.png";
     })
   ]).then(([a, b]) => setLabelArt(a, b));
-  var renderer = new WebGLRenderer({ canvas: canvas2, antialias: true, powerPreference: "high-performance" });
+  var renderer = new WebGLRenderer({ canvas: canvas2, antialias: false, powerPreference: "high-performance" });
   renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
   renderer.setSize(innerWidth, innerHeight, false);
   renderer.toneMapping = NeutralToneMapping ?? ACESFilmicToneMapping;
@@ -33376,17 +33380,20 @@ void main() {
   var rig = createRig(scene);
   renderer.shadowMap.autoUpdate = false;
   renderer.shadowMap.needsUpdate = true;
-  var floorBase = createSoftFloor({ base: 723982, mix: 0.62, y: -1.62, interval: 2 });
+  var floorBase = createSoftFloor({ base: 723982, mix: 0.62, y: -1.62, interval: IS_MOBILE ? 4 : 2 });
   scene.add(floorBase.mesh ?? floorBase.group ?? floorBase);
   var composer;
   var grade;
   var bloom;
+  var aoPass;
   function buildComposer() {
     const c = createComposer(renderer, scene, camera);
     composer = c.composer;
     grade = c.grade;
     bloom = c.bloom;
+    aoPass = c.ao;
     grade.uniforms.uFade.value = 1;
+    if (IS_MOBILE) aoPass.enabled = false;
   }
   var orbit = new Orbit(canvas2, camera, {
     theta: 0.62,
@@ -33837,6 +33844,18 @@ void main() {
     grade.uniforms.uCenter.value.set(subjectPos.x * 0.5 + 0.5, subjectPos.y * 0.5 + 0.5);
     grade.uniforms.uTime.value = t;
     orbit.update(dt);
+    emaFrame = emaFrame * 0.94 + Math.min(dt, 0.05) * 1e3 * 0.06;
+    perfAcc += dt;
+    if (perfAcc > 1.5) {
+      perfAcc = 0;
+      if (emaFrame > 26 && resScale > 0.55) {
+        resScale = Math.max(0.55, resScale - 0.12);
+        onResize();
+      } else if (emaFrame < 15 && resScale < 1) {
+        resScale = Math.min(1, resScale + 0.08);
+        onResize();
+      }
+    }
     const camMoved = Math.abs(camera.position.lengthSq() - (loop._cl ?? 0)) > 1e-6;
     loop._cl = camera.position.lengthSq();
     floorBase.update(renderer, scene, camera, camMoved);
@@ -33845,13 +33864,12 @@ void main() {
   }
   function onResize() {
     const w = innerWidth, h = innerHeight;
-    const dpr = Math.min(devicePixelRatio || 1, 2);
+    const dpr = Math.min(devicePixelRatio || 1, IS_MOBILE ? 1.25 : 1.5) * resScale;
     camera.aspect = w / h;
     renderer.setPixelRatio(dpr);
     renderer.setSize(w, h, false);
     camera.updateProjectionMatrix();
-    const ss = w * dpr * h * dpr > 9e6 ? 1 : 1.25;
-    const bw = Math.round(w * dpr * ss), bh = Math.round(h * dpr * ss);
+    const bw = Math.round(w * dpr), bh = Math.round(h * dpr);
     if (composer) composer.setSize(bw, bh);
     if (bloom) bloom.setSize(bw, bh);
     floorBase.setSize && floorBase.setSize(w, h);

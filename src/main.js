@@ -18,6 +18,10 @@ import { MIXTAPE, otherSide, trackAt } from './mixtape.js';
 
 const canvas = document.getElementById('gl');
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+/* 性能分级：触屏设备自动走低负载档（分辨率/AO/反射频率全部下调） */
+const IS_MOBILE = matchMedia('(pointer: coarse)').matches;
+let resScale = 1;                       // 自适应渲染分辨率 [0.55, 1]
+let emaFrame = 16, perfAcc = 0;
 const $ = (s) => document.querySelector(s);
 
 /* 贴纸印刷先于一切：createCassette 首次画标签就要用 */
@@ -27,7 +31,7 @@ const LABEL_ART_READY = Promise.all([
 ]).then(([a, b]) => TX.setLabelArt(a, b));
 
 /* ============================== 渲染器与舞台 ============================ */
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
 renderer.setSize(innerWidth, innerHeight, false);
 renderer.toneMapping = THREE.NeutralToneMapping ?? THREE.ACESFilmicToneMapping;
@@ -57,16 +61,17 @@ const rig = createRig(scene);
 renderer.shadowMap.autoUpdate = false;
 renderer.shadowMap.needsUpdate = true;
 
-const floorBase = createSoftFloor({ base: 0x0b0c0e, mix: 0.62, y: -1.62, interval: 2 });
+const floorBase = createSoftFloor({ base: 0x0b0c0e, mix: 0.62, y: -1.62, interval: IS_MOBILE ? 4 : 2 });
 scene.add(floorBase.mesh ?? floorBase.group ?? floorBase);
 
 /* composer：AO / 辉光 / 颗粒 / 暗角 */
-let composer, grade, bloom;
+let composer, grade, bloom, aoPass;
 function buildComposer() {
   const c = createComposer(renderer, scene, camera);
-  composer = c.composer; grade = c.grade; bloom = c.bloom;
+  composer = c.composer; grade = c.grade; bloom = c.bloom; aoPass = c.ao;
   // uFade 是整帧的淡入系数（着色器输出 c * uFade），不点亮就是一帧纯黑
   grade.uniforms.uFade.value = 1;
+  if (IS_MOBILE) aoPass.enabled = false;   // SSAO 是整条后处理里最贵的一趟
 }
 
 /* 相机：可拖拽旋转 / 滚轮缩放 / 双击回家 */
@@ -515,6 +520,14 @@ function loop() {
   grade.uniforms.uTime.value = t;
 
   orbit.update(dt);
+  // 自适应分辨率：持续 >26ms 就降采样，<15ms 再升回来，设备差也能稳住交互
+  emaFrame = emaFrame * 0.94 + Math.min(dt, 0.05) * 1000 * 0.06;
+  perfAcc += dt;
+  if (perfAcc > 1.5) {
+    perfAcc = 0;
+    if (emaFrame > 26 && resScale > 0.55) { resScale = Math.max(0.55, resScale - 0.12); onResize(); }
+    else if (emaFrame < 15 && resScale < 1) { resScale = Math.min(1, resScale + 0.08); onResize(); }
+  }
   const camMoved = Math.abs(camera.position.lengthSq() - (loop._cl ?? 0)) > 1e-6;
   loop._cl = camera.position.lengthSq();
   floorBase.update(renderer, scene, camera, camMoved);
@@ -525,13 +538,12 @@ function loop() {
 /* ============================== 尺寸 ==================================== */
 function onResize() {
   const w = innerWidth, h = innerHeight;
-  const dpr = Math.min(devicePixelRatio || 1, 2);
+  const dpr = Math.min(devicePixelRatio || 1, IS_MOBILE ? 1.25 : 1.5) * resScale;
   camera.aspect = w / h;
   renderer.setPixelRatio(dpr);
   renderer.setSize(w, h, false);
   camera.updateProjectionMatrix();
-  const ss = w * dpr * h * dpr > 9.0e6 ? 1 : 1.25;
-  const bw = Math.round(w * dpr * ss), bh = Math.round(h * dpr * ss);
+  const bw = Math.round(w * dpr), bh = Math.round(h * dpr);
   if (composer) composer.setSize(bw, bh);
   if (bloom) bloom.setSize(bw, bh);
   floorBase.setSize && floorBase.setSize(w, h);

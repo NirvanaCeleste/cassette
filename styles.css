@@ -60,3 +60,10 @@ body.ready .veil { opacity: 0; }
 .hint.show { opacity: .8; }
 
 body.dragging { cursor: grabbing; }
+
+/* 加载提示：着色器编译需要几秒，给个会呼吸的字，别让人以为死机了 */
+.veil { display: flex; flex-direction: column; gap: 14px; align-items: center; justify-content: center; }
+.veil-mark { font: 700 28px/1 "Bahnschrift", "Segoe UI", sans-serif; letter-spacing: .12em; color: #b9bfc7; }
+.veil-mark b { font-weight: 300; color: #6d747e; }
+.veil-lbl { font-size: 11px; letter-spacing: .28em; color: #565c66; animation: veilpulse 1.6s ease-in-out infinite; }
+@keyframes veilpulse { 0%, 100% { opacity: .35; } 50% { opacity: .9; } }
