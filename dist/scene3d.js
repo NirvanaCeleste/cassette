@@ -29332,7 +29332,7 @@ void main() {
     const art = LABEL_ART[face];
     if (art) {
       {
-        const sc = Math.min(W / art.width, H / art.height);
+        const sc = Math.max(W / art.width, H / art.height);
         const w = art.width * sc, h = art.height * sc;
         g.drawImage(art, (W - w) / 2, (H - h) / 2, w, h);
       }
@@ -29599,7 +29599,7 @@ void main() {
     // plate thickness / bevel
     wall: 0.3,
     labelInset: 0.26,
-    win: { hw: 3.5, hz0: -1.85, hz1: 1.65, r: 0.26 },
+    win: { hw: 3.17, hz0: -1.72, hz1: 0.7, r: 0.3 },
     hub: { x: 2.15, z: -0.3, r: 0.62, h: 0.88 },
     tapeW: 0.381,
     guide: { x: 1.78, z: 2.42, r: 0.085 },

@@ -15,7 +15,7 @@ export const DIM = {
   PT: 0.11, BV: 0.03,          // plate thickness / bevel
   wall: 0.30,
   labelInset: 0.26,
-  win: { hw: 3.50, hz0: -1.85, hz1: 1.65, r: 0.26 },
+  win: { hw: 3.17, hz0: -1.72, hz1: 0.70, r: 0.30 },
   hub: { x: 2.15, z: -0.30, r: 0.62, h: 0.88 },
   tapeW: 0.381,
   guide: { x: 1.78, z: 2.42, r: 0.085 },

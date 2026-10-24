@@ -1035,7 +1035,7 @@ export function labelTexture(face = 'A', { title = '', artist = '', album = '', 
   if (art) {
     // ---- the sticker itself: 按单枚原始比例 contain 贴在壳面正中（圆角与胶囊窗镂空保留）
     {
-      const sc = Math.min(W / art.width, H / art.height);
+      const sc = Math.max(W / art.width, H / art.height);
       const w = art.width * sc, h = art.height * sc;
       g.drawImage(art, (W - w) / 2, (H - h) / 2, w, h);
     }
