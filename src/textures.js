@@ -1034,11 +1034,7 @@ export function labelTexture(face = 'A', { title = '', artist = '', album = '', 
 
   if (art) {
     // ---- the sticker itself: 按单枚原始比例 contain 贴在壳面正中（圆角与胶囊窗镂空保留）
-    {
-      const sc = Math.max(W / art.width, H / art.height);
-      const w = art.width * sc, h = art.height * sc;
-      g.drawImage(art, (W - w) / 2, (H - h) / 2, w, h);
-    }
+    g.drawImage(art, 0, 0, W, H);
     // paper tooth and grain over the print, so it reads as paper stuck on shell
     tooth(g, W, H, { seed: face === 'A' ? 21 : 33, dark: .055, light: .045 });
     grain(g, W, H, .028, face === 'A' ? 9 : 17);
