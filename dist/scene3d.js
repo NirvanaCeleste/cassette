@@ -29331,7 +29331,11 @@ void main() {
     const U = (u) => u * S;
     const art = LABEL_ART[face];
     if (art) {
-      g.drawImage(art, 0, 0, W, H);
+      {
+        const sc = Math.min(W / art.width, H / art.height);
+        const w = art.width * sc, h = art.height * sc;
+        g.drawImage(art, (W - w) / 2, (H - h) / 2, w, h);
+      }
       tooth(g, W, H, { seed: face === "A" ? 21 : 33, dark: 0.055, light: 0.045 });
       grain(g, W, H, 0.028, face === "A" ? 9 : 17);
       if (face === "A") {
