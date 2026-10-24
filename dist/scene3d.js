@@ -31193,10 +31193,10 @@ void main() {
     g.fillRect(0, 0, 512, 317);
     if (coverImg) {
       const iw = coverImg.width, ih = coverImg.height;
-      const sc = Math.max(512 / iw, 317 / ih) * 0.96;
+      const sc = Math.min(512 / iw, 317 / ih) * 0.96;
       const w = iw * sc, h = ih * sc;
       g.filter = "brightness(1.5)";
-      g.drawImage(coverImg, (512 - w) / 2, (317 - h) / 2 + 30, w, h);
+      g.drawImage(coverImg, (512 - w) / 2, (317 - h) / 2, w, h);
       g.filter = "none";
     }
     g.fillStyle = "rgba(240,240,240,.92)";
